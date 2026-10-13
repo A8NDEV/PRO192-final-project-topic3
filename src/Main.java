@@ -4,10 +4,8 @@
  */
 
 import dispatcher.MenuDispatcher;
-import java.util.List;
-import models.MenuItem;
+import repository.MenuRepository;
 import service.MenuService;
-import utils.FileHandler;
 
 /**
  *
@@ -17,10 +15,10 @@ public class Main {
     public static void main(String[] args) {
         String menuFilePath = "data/menu.txt";
 
-        List<MenuItem> loadedMenu = FileHandler.loadMenuFromFile(menuFilePath);
-        MenuService menuService = new MenuService(loadedMenu);
+        MenuRepository menuRepository = new MenuRepository(menuFilePath);
+        MenuService menuService = new MenuService(menuRepository);
 
-        MenuDispatcher menuDispatcher = new MenuDispatcher(menuService, menuFilePath);
+        MenuDispatcher menuDispatcher = new MenuDispatcher(menuService);
         menuDispatcher.showMenu();
     }
 }

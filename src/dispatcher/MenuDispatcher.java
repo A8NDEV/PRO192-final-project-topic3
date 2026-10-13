@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Scanner;
 import exception.AppException;
 import models.MenuItem;
-import utils.FileHandler;
 import utils.InputHandler;
 
 /**
@@ -23,12 +22,10 @@ public class MenuDispatcher {
 
     private MenuService menuService;
     private OrderService orderService = new OrderService();
-    private String filePath;
     private Scanner scanner;
 
-    public MenuDispatcher(MenuService menuService, String filePath) {
+    public MenuDispatcher(MenuService menuService) {
         this.menuService = menuService;
-        this.filePath = filePath;
         this.scanner = new Scanner(System.in);
     }
 
@@ -81,7 +78,7 @@ public class MenuDispatcher {
 
         try {
             menuService.addItem(newItem);
-            FileHandler.saveMenuToFile(menuService.getMenuList(), filePath);
+            menuService.save();
             System.out.println("Item added successfully!");
         } catch (AppException e) {
             System.out.println("Error: " + e.getMessage());
