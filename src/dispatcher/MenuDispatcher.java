@@ -5,6 +5,8 @@
 package dispatcher;
 
 import business.MenuService;
+import business.OrderService;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Scanner;
@@ -20,6 +22,7 @@ import utils.InputHandler;
 public class MenuDispatcher {
 
     private MenuService menuService;
+    private OrderService orderService = new OrderService();
     private String filePath;
     private Scanner scanner;
 
@@ -35,6 +38,7 @@ public class MenuDispatcher {
             System.out.println("\n===== Menu Management =====");
             System.out.println("1. Add new Item");
             System.out.println("2. Search Item");
+            System.out.println("3. Order management"); 
             System.out.println("0. Exit");
             System.out.print("Choose: ");
 
@@ -51,6 +55,9 @@ public class MenuDispatcher {
                     break;
                 case 2:
                     searchItem();
+                    break;
+                case 3:
+                    new OrderDispatcher(orderService, menuService.getMenuList(), scanner).run();
                     break;
                 case 0:
                     break;
@@ -117,6 +124,7 @@ public class MenuDispatcher {
                     }
                 }
                 break;
+        
             case 0:
                 break;
             default:
