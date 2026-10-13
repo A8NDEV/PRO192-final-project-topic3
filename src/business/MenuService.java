@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import models.MenuItem;
-import utils.CustomException;
+import exception.DuplicateItemException;
 
 /**
  *
@@ -58,9 +58,9 @@ public class MenuService {
         return result;
     }
 
-    public void addItem(MenuItem item) throws CustomException {
+    public void addItem(MenuItem item) throws DuplicateItemException {
         if (findById(item.getItemId()) != null) {
-            throw new CustomException("Item ID '" + item.getItemId() + "' already exists!");
+            throw new DuplicateItemException(item.getItemId());
         }
         menuList.add(item);
     }

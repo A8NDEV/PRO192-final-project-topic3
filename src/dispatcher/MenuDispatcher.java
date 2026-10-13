@@ -10,8 +10,8 @@ import business.OrderService;
 import java.io.IOException;
 import java.util.List;
 import java.util.Scanner;
+import exception.AppException;
 import models.MenuItem;
-import utils.CustomException;
 import utils.FileHandler;
 import utils.InputHandler;
 
@@ -83,7 +83,7 @@ public class MenuDispatcher {
             menuService.addItem(newItem);
             FileHandler.saveMenuToFile(menuService.getMenuList(), filePath);
             System.out.println("Item added successfully!");
-        } catch (CustomException e) {
+        } catch (AppException e) {
             System.out.println("Error: " + e.getMessage());
         } catch (IOException e) {
             System.out.println("Error saving file: " + e.getMessage());
