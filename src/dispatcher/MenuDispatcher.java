@@ -5,6 +5,8 @@
 package dispatcher;
 
 import business.MenuService;
+import business.OrderService;
+
 import java.io.IOException;
 import java.util.Scanner;
 import models.MenuItem;
@@ -19,6 +21,7 @@ import utils.InputHandler;
 public class MenuDispatcher {
 
     private MenuService menuService;
+    private OrderService orderService = new OrderService();
     private String filePath;
     private Scanner scanner;
 
@@ -33,6 +36,8 @@ public class MenuDispatcher {
         do {
             System.out.println("\n===== Menu Management =====");
             System.out.println("1. Add new Item");
+            System.out.println("2. Search Item");
+            System.out.println("3. Order management"); 
             System.out.println("0. Exit");
             System.out.print("Choose: ");
 
@@ -46,6 +51,12 @@ public class MenuDispatcher {
             switch (choice) {
                 case 1:
                     addItem();
+                    break;
+                case 2:
+                    searchItem();
+                    break;
+                case 3:
+                    new OrderDispatcher(orderService, menuService.getMenuList(), scanner).run();
                     break;
                 case 0:
                     break;
@@ -75,6 +86,49 @@ public class MenuDispatcher {
             System.out.println("Error: " + e.getMessage());
         } catch (IOException e) {
             System.out.println("Error saving file: " + e.getMessage());
+        }
+    }
+
+    private void searchItem() {
+        System.out.println("\n===== Search Item Menu =====");
+        System.out.println("1. Search by ID");
+        System.out.println("2. Search by Name");
+        System.out.println("0. Exit");
+        System.out.print("Choose: ");
+        int choice = -1;
+        try {
+            choice = Integer.parseInt(scanner.nextLine());
+        } catch (NumberFormatException e) {
+            System.out.println("Value must be an integer.");
+            return;
+        }
+        switch (choice) {
+            case 1:
+                String id = InputHandler.readNonBlank(scanner, "Enter Item ID to search: ");
+                MenuItem item = menuService.findById(id);
+                if (item != null) {
+                    System.out.println("- " + item);
+                } else {
+                    System.out.println("Item not found.");
+                }
+                break;
+            case 2:
+                String name = InputHandler.readNonBlank(scanner, "Enter Item Name to search: ");
+                List<MenuItem> list = menuService.findByName(name);
+                if (list.isEmpty()) {
+                    System.out.println("Item not found");
+                } else {
+                    for (MenuItem i : list) {
+                        System.out.println("- " + i);
+                    }
+                }
+                break;
+        
+            case 0:
+                break;
+            default:
+                System.out.println("Invalid option.");
+                break;
         }
     }
 }
