@@ -4,8 +4,8 @@
  */
 package dispatcher;
 
-import business.MenuService;
-import business.OrderService;
+import service.MenuService;
+import service.OrderService;
 
 import java.io.IOException;
 import java.util.List;

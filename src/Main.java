@@ -3,10 +3,10 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 
-import business.MenuService;
 import dispatcher.MenuDispatcher;
 import java.util.List;
 import models.MenuItem;
+import service.MenuService;
 import utils.FileHandler;
 
 /**
