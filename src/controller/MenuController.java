@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Scanner;
 import models.MenuItem;
 import service.MenuService;
-import service.OrderService;
 import utils.InputHandler;
 import view.MenuView;
 
@@ -21,19 +20,18 @@ import view.MenuView;
 public class MenuController {
 
     private MenuService menuService;
-    private OrderService orderService = new OrderService();
     private MenuView view = new MenuView();
     private Scanner scanner;
 
-    public MenuController(MenuService menuService) {
+    public MenuController(MenuService menuService, Scanner scanner) {
         this.menuService = menuService;
-        this.scanner = new Scanner(System.in);
+        this.scanner = scanner;
     }
 
     public void run() {
         int choice = -1;
         do {
-            view.showMainMenu();
+            view.showMenuManagement();
 
             try {
                 choice = Integer.parseInt(scanner.nextLine());
@@ -48,9 +46,6 @@ public class MenuController {
                     break;
                 case 2:
                     searchItem();
-                    break;
-                case 3:
-                    new OrderController(orderService, menuService.getMenuList(), scanner).run();
                     break;
                 case 0:
                     break;

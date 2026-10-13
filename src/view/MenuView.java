@@ -3,16 +3,19 @@ package view;
 import models.MenuItem;
 
 /**
+ *
+ * @author ASUS
+ */
+/**
  * Hiển thị phần Menu ra console. Chỉ in, không đọc input và không xử lý logic.
  */
 public class MenuView {
 
-    public void showMainMenu() {
+    public void showMenuManagement() {
         System.out.println("\n===== Menu Management =====");
         System.out.println("1. Add new Item");
         System.out.println("2. Search Item");
-        System.out.println("3. Order management");
-        System.out.println("0. Exit");
+        System.out.println("0. Back");
         System.out.print("Choose: ");
     }
 
