@@ -5,9 +5,7 @@
 
 import controller.AppController;
 import controller.MenuController;
-import controller.OrderController;
 import java.util.Scanner;
-import java.util.function.Supplier;
 import repository.MenuRepository;
 import service.MenuService;
 import service.OrderService;
@@ -27,12 +25,8 @@ public class Main {
 
         Scanner scanner = new Scanner(System.in);
         MenuController menuController = new MenuController(menuService, scanner);
-        // OrderController giữ bản sao danh sách món từ lúc khởi tạo, nên tạo mới
-        // mỗi lần vào Order để thấy các món vừa thêm ở Menu management
-        Supplier<OrderController> orderControllerFactory
-                = () -> new OrderController(orderService, menuService.getMenuList(), scanner);
 
-        AppController appController = new AppController(scanner, menuController, orderControllerFactory);
+        AppController appController = new AppController(scanner, menuController, menuService, orderService);
         appController.run();
     }
 }
