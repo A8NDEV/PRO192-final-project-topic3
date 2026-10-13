@@ -4,7 +4,7 @@
  */
 package controller;
 
-import exception.AppException;
+import exception.BusinessException;
 import java.io.IOException;
 import java.util.List;
 import java.util.Scanner;
@@ -71,7 +71,7 @@ public class MenuController {
             menuService.addItem(newItem);
             menuService.save();
             view.showAddSuccess();
-        } catch (AppException e) {
+        } catch (BusinessException e) {
             view.showError(e.getMessage());
         } catch (IOException e) {
             view.showSaveError(e.getMessage());

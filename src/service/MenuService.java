@@ -60,7 +60,7 @@ public class MenuService {
         return result;
     }
 
-    public void addItem(MenuItem item) throws DuplicateItemException {
+    public void addItem(MenuItem item) {
         if (findById(item.getItemId()) != null) {
             throw new DuplicateItemException(item.getItemId());
         }

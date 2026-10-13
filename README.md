@@ -82,7 +82,7 @@ The project follows a multi-layer structure (Model – View – Controller – S
 | `controller` | Receives user requests, validates input via `utils`, calls services and views |
 | `service` | Business logic; calls repositories when it needs to access data |
 | `repository` | Reads/writes data directly (in-memory list + `.txt` files) |
-| `exception` | Custom exception for each error case (`AppException` is the base class) |
+| `exception` | Custom exception for each error case (`BusinessException` is the unchecked base class) |
 | `utils` | Shared helpers (`Validator`, `InputHandler`) |
 
 ```text
@@ -111,7 +111,7 @@ TableOrderingSystem/
 │   │   └── MenuRepository.java
 │   │
 │   ├── exception/
-│   │   ├── AppException.java
+│   │   ├── BusinessException.java
 │   │   └── DuplicateItemException.java
 │   │
 │   ├── utils/
