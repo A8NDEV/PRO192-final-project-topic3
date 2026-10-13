@@ -95,9 +95,11 @@ TableOrderingSystem/
 │   │   └── OrderStatus.java
 │   │
 │   ├── view/
+│   │   ├── AppView.java
 │   │   └── MenuView.java
 │   │
 │   ├── controller/
+│   │   ├── AppController.java
 │   │   ├── MenuController.java
 │   │   └── OrderController.java
 │   │
@@ -126,6 +128,9 @@ TableOrderingSystem/
 ├── build.xml
 └── README.md
 ```
+
+The console flow is: **Main Menu** (`AppController`) → **Menu management**
+(`MenuController`) or **Order management** (`OrderController`).
 
 > **Status:** the Menu feature is fully split into the layers above. The Order
 > feature has been moved into the new packages but is not split yet:

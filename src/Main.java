@@ -3,9 +3,10 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 
-import controller.MenuController;
+import controller.AppController;
 import repository.MenuRepository;
 import service.MenuService;
+import service.OrderService;
 
 /**
  *
@@ -18,7 +19,9 @@ public class Main {
         MenuRepository menuRepository = new MenuRepository(menuFilePath);
         MenuService menuService = new MenuService(menuRepository);
 
-        MenuController menuController = new MenuController(menuService);
-        menuController.run();
+        OrderService orderService = new OrderService();
+
+        AppController appController = new AppController(menuService, orderService);
+        appController.run();
     }
 }
