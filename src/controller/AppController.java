@@ -1,9 +1,8 @@
 package controller;
 
 import java.util.Scanner;
-import service.MenuService;
-import service.OrderService;
-import view.AppView;
+import java.util.function.Supplier;
+import view.ConsoleView;
 
 /**
  *
@@ -14,27 +13,29 @@ import view.AppView;
  */
 public class AppController {
 
-    private final MenuService menuService;
-    private final OrderService orderService;
-    private final Scanner scanner = new Scanner(System.in);
-    private final AppView view = new AppView();
-    private final MenuController menuController;
+    private static final String[] MAIN_OPTIONS = {"Menu management", "Order management"};
 
-    public AppController(MenuService menuService, OrderService orderService) {
-        this.menuService = menuService;
-        this.orderService = orderService;
-        this.menuController = new MenuController(menuService, scanner);
+    private final Scanner scanner;
+    private final MenuController menuController;
+    private final Supplier<OrderController> orderControllerFactory;
+    private final ConsoleView console = new ConsoleView();
+
+    public AppController(Scanner scanner, MenuController menuController,
+                         Supplier<OrderController> orderControllerFactory) {
+        this.scanner = scanner;
+        this.menuController = menuController;
+        this.orderControllerFactory = orderControllerFactory;
     }
 
     public void run() {
         int choice = -1;
         do {
-            view.showMainMenu();
+            console.showMenu("Table-side Ordering", MAIN_OPTIONS, "Exit");
 
             try {
                 choice = Integer.parseInt(scanner.nextLine());
             } catch (NumberFormatException e) {
-                view.showNotInteger();
+                console.showMessage("Value must be an integer.");
                 continue;
             }
 
@@ -43,12 +44,12 @@ public class AppController {
                     menuController.run();
                     break;
                 case 2:
-                    new OrderController(orderService, menuService.getMenuList(), scanner).run();
+                    orderControllerFactory.get().run();
                     break;
                 case 0:
                     break;
                 default:
-                    view.showInvalidChoice();
+                    console.showMessage("Invalid choice.");
                     break;
             }
         } while (choice != 0);
