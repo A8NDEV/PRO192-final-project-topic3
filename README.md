@@ -73,7 +73,17 @@ Each `Order` contains:
 
 ## 🏗️ Project Architecture & Package Structure
 
-The project follows a standard multi-layer package structure in NetBeans:
+The project follows a multi-layer structure (Model – View – Controller – Service – Repository):
+
+| Package | Responsibility |
+|---|---|
+| `models` | Entity classes (`MenuItem`, `Order`, `OrderItem`, `OrderStatus`) |
+| `view` | Display only: prints menus, messages and data to the console |
+| `controller` | Receives user requests, validates input via `utils`, calls services and views |
+| `service` | Business logic; calls repositories when it needs to access data |
+| `repository` | Reads/writes data directly (in-memory list + `.txt` files) |
+| `exception` | Custom exception for each error case (`AppException` is the base class) |
+| `utils` | Shared helpers (`Validator`, `InputHandler`) |
 
 ```text
 TableOrderingSystem/
@@ -81,20 +91,30 @@ TableOrderingSystem/
 │   ├── models/
 │   │   ├── MenuItem.java
 │   │   ├── Order.java
-│   │   └── OrderItem.java
+│   │   ├── OrderItem.java
+│   │   └── OrderStatus.java
 │   │
-│   ├── business/
-│   │   ├── MenuManager.java
-│   │   └── OrderManager.java
+│   ├── view/
+│   │   └── MenuView.java
 │   │
-│   ├── dispatcher/
-│   │   ├── MenuDispatcher.java
-│   │   └── AppController.java
+│   ├── controller/
+│   │   ├── MenuController.java
+│   │   └── OrderController.java
+│   │
+│   ├── service/
+│   │   ├── MenuService.java
+│   │   └── OrderService.java
+│   │
+│   ├── repository/
+│   │   └── MenuRepository.java
+│   │
+│   ├── exception/
+│   │   ├── AppException.java
+│   │   └── DuplicateItemException.java
 │   │
 │   ├── utils/
-│   │   ├── FileHandler.java
-│   │   ├── InputValidator.java
-│   │   └── DataFormatter.java
+│   │   ├── InputHandler.java
+│   │   └── Validator.java
 │   │
 │   └── Main.java
 │
@@ -105,3 +125,11 @@ TableOrderingSystem/
 ├── nbproject/
 ├── build.xml
 └── README.md
+```
+
+> **Status:** the Menu feature is fully split into the layers above. The Order
+> feature has been moved into the new packages but is not split yet:
+> `OrderController` still contains the display and validation code,
+> `OrderService` still keeps the order list in memory, and there is no
+> `OrderRepository`, `OrderView` or per-case exceptions for Order yet.
+> `data/orders.txt` is not read or written yet.
