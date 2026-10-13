@@ -1,8 +1,4 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
-package utils;
+package repository;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -15,12 +11,28 @@ import java.util.List;
 import models.MenuItem;
 
 /**
- *
- * @author ASUS
+ * Thao tác trực tiếp với dữ liệu menu: giữ danh sách món trong bộ nhớ và
+ * đọc/ghi file menu.txt.
  */
-public class FileHandler {
+public class MenuRepository {
 
-    public static void saveMenuToFile(List<MenuItem> menuList, String filePath) throws IOException {
+    private final String filePath;
+    private final List<MenuItem> menuList;
+
+    public MenuRepository(String filePath) {
+        this.filePath = filePath;
+        this.menuList = load();
+    }
+
+    public List<MenuItem> findAll() {
+        return new ArrayList<>(menuList);
+    }
+
+    public void add(MenuItem item) {
+        menuList.add(item);
+    }
+
+    public void save() throws IOException {
         try ( BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
             for (MenuItem item : menuList) {
                 writer.write(item.getItemId() + "|" + item.getItemName() + "|"
@@ -30,8 +42,8 @@ public class FileHandler {
         }
     }
 
-    public static List<MenuItem> loadMenuFromFile(String filePath) {
-        List<MenuItem> menuList = new ArrayList<>();
+    private List<MenuItem> load() {
+        List<MenuItem> items = new ArrayList<>();
         try ( BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
             String line;
             while ((line = reader.readLine()) != null) {
@@ -46,7 +58,7 @@ public class FileHandler {
                     String category = parts[2];
                     double price = Double.parseDouble(parts[3]);
                     boolean status = Boolean.parseBoolean(parts[4]);
-                    menuList.add(new MenuItem(id, name, category, price, status));
+                    items.add(new MenuItem(id, name, category, price, status));
                 } catch (Exception e) {
                     System.out.println("Skipping invalid line: " + line);
                 }
@@ -56,6 +68,6 @@ public class FileHandler {
         } catch (IOException e) {
             // Lỗi đọc file khác
         }
-        return menuList;
+        return items;
     }
 }
