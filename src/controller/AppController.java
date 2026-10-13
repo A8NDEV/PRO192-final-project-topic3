@@ -1,8 +1,7 @@
 package controller;
 
 import java.util.Scanner;
-import service.MenuService;
-import service.OrderService;
+import java.util.function.Supplier;
 import view.ConsoleView;
 
 /**
@@ -16,16 +15,16 @@ public class AppController {
 
     private static final String[] MAIN_OPTIONS = {"Menu management", "Order management"};
 
-    private final MenuService menuService;
-    private final OrderService orderService;
-    private final Scanner scanner = new Scanner(System.in);
-    private final ConsoleView console = new ConsoleView();
+    private final Scanner scanner;
     private final MenuController menuController;
+    private final Supplier<OrderController> orderControllerFactory;
+    private final ConsoleView console = new ConsoleView();
 
-    public AppController(MenuService menuService, OrderService orderService) {
-        this.menuService = menuService;
-        this.orderService = orderService;
-        this.menuController = new MenuController(menuService, scanner);
+    public AppController(Scanner scanner, MenuController menuController,
+                         Supplier<OrderController> orderControllerFactory) {
+        this.scanner = scanner;
+        this.menuController = menuController;
+        this.orderControllerFactory = orderControllerFactory;
     }
 
     public void run() {
@@ -45,7 +44,7 @@ public class AppController {
                     menuController.run();
                     break;
                 case 2:
-                    new OrderController(orderService, menuService.getMenuList(), scanner).run();
+                    orderControllerFactory.get().run();
                     break;
                 case 0:
                     break;
