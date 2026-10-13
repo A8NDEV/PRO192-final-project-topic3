@@ -124,10 +124,15 @@ TableOrderingSystem/
 │   ├── menu.txt
 │   └── orders.txt
 │
+├── docs/
+│   └── ARCHITECTURE.md
+│
 ├── nbproject/
 ├── build.xml
 └── README.md
 ```
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the rules about which layer may call which.
 
 The console flow is: **Main Menu** (`AppController`) → **Menu management**
 (`MenuController`) or **Order management** (`OrderController`).
