@@ -2,28 +2,30 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package business;
+package service;
 
+import exception.DuplicateItemException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import models.MenuItem;
-import utils.CustomException;
+import repository.MenuRepository;
 
 /**
  *
  * @author ASUS
  */
 /**
- * Xử lý nghiệp vụ quản lý menu: lưu danh sách món. và thực hiện các thao tác
- * CRUD.
+ * Xử lý nghiệp vụ quản lý menu: kiểm tra trùng ID, tìm kiếm và thêm món. Dữ
+ * liệu được lấy/lưu qua MenuRepository.
  */
 public class MenuService {
 
-    private List<MenuItem> menuList;
+    private MenuRepository menuRepository;
 
-    public MenuService(List<MenuItem> menuList) {
-        this.menuList = menuList;
+    public MenuService(MenuRepository menuRepository) {
+        this.menuRepository = menuRepository;
     }
 
     public MenuItem findById(String id) {
@@ -32,7 +34,7 @@ public class MenuService {
         }
         String searchId = id.trim();
 
-        for (MenuItem item : menuList) {
+        for (MenuItem item : menuRepository.findAll()) {
             if (item.getItemId().equalsIgnoreCase(searchId)) {
                 return item;
             }
@@ -48,7 +50,7 @@ public class MenuService {
         String lowerName = name.trim().toLowerCase();
         List<MenuItem> result = new ArrayList<>();
 
-        for (MenuItem item : menuList) {
+        for (MenuItem item : menuRepository.findAll()) {
             if (item != null && item.getItemName() != null) {
                 if (item.getItemName().toLowerCase().contains(lowerName)) {
                     result.add(item);
@@ -58,15 +60,19 @@ public class MenuService {
         return result;
     }
 
-    public void addItem(MenuItem item) throws CustomException {
+    public void addItem(MenuItem item) throws DuplicateItemException {
         if (findById(item.getItemId()) != null) {
-            throw new CustomException("Item ID '" + item.getItemId() + "' already exists!");
+            throw new DuplicateItemException(item.getItemId());
         }
-        menuList.add(item);
+        menuRepository.add(item);
+    }
+
+    public void save() throws IOException {
+        menuRepository.save();
     }
 
     public List<MenuItem> getMenuList() {
-        return new ArrayList<>(menuList);
+        return menuRepository.findAll();
     }
 
 }
