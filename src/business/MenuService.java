@@ -5,6 +5,7 @@
 package business;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import models.MenuItem;
 import utils.CustomException;
@@ -25,11 +26,41 @@ public class MenuService {
         this.menuList = menuList;
     }
 
-    public void addItem(MenuItem item) throws CustomException {
-        for (MenuItem m : menuList) {
-            if (m.getItemId().equalsIgnoreCase(item.getItemId())) {
-                throw new CustomException("Item ID '" + item.getItemId() + "' already exists!");
+    public MenuItem findById(String id) {
+        if (id == null) {
+            return null;
+        }
+        String searchId = id.trim();
+
+        for (MenuItem item : menuList) {
+            if (item.getItemId().equalsIgnoreCase(searchId)) {
+                return item;
             }
+        }
+        return null;
+    }
+
+    public List<MenuItem> findByName(String name) {
+        if (name == null || name.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        String lowerName = name.trim().toLowerCase();
+        List<MenuItem> result = new ArrayList<>();
+
+        for (MenuItem item : menuList) {
+            if (item != null && item.getItemName() != null) {
+                if (item.getItemName().toLowerCase().contains(lowerName)) {
+                    result.add(item);
+                }
+            }
+        }
+        return result;
+    }
+
+    public void addItem(MenuItem item) throws CustomException {
+        if (findById(item.getItemId()) != null) {
+            throw new CustomException("Item ID '" + item.getItemId() + "' already exists!");
         }
         menuList.add(item);
     }
