@@ -4,7 +4,6 @@
  */
 package controller;
 
-import dispatcher.OrderDispatcher;
 import exception.AppException;
 import java.io.IOException;
 import java.util.List;
@@ -51,7 +50,7 @@ public class MenuController {
                     searchItem();
                     break;
                 case 3:
-                    new OrderDispatcher(orderService, menuService.getMenuList(), scanner).run();
+                    new OrderController(orderService, menuService.getMenuList(), scanner).run();
                     break;
                 case 0:
                     break;

@@ -1,4 +1,4 @@
-package dispatcher;
+package controller;
 
 import service.OrderService;
 import java.time.LocalDate;
@@ -12,7 +12,7 @@ import java.util.regex.Pattern;
 import models.MenuItem;
 import models.Order;
 
-public class OrderDispatcher {
+public class OrderController {
     private final OrderService manager;
     private final List<MenuItem> menu;
     private final Scanner sc;
@@ -30,7 +30,7 @@ public class OrderDispatcher {
             DateTimeFormatter.ofPattern("dd/MM/uuuu").withResolverStyle(ResolverStyle.STRICT);
 
     // manager: dùng chung 1 đối tượng cho cả nhóm; menu: danh sách món từ phần Menu
-    public OrderDispatcher(OrderService manager, List<MenuItem> menu, Scanner sc) {
+    public OrderController(OrderService manager, List<MenuItem> menu, Scanner sc) {
         this.manager = manager;
         this.menu = menu;
         this.sc = sc;
