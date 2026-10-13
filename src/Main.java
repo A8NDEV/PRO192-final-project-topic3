@@ -3,7 +3,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 
-import dispatcher.MenuDispatcher;
+import controller.MenuController;
 import repository.MenuRepository;
 import service.MenuService;
 
@@ -18,7 +18,7 @@ public class Main {
         MenuRepository menuRepository = new MenuRepository(menuFilePath);
         MenuService menuService = new MenuService(menuRepository);
 
-        MenuDispatcher menuDispatcher = new MenuDispatcher(menuService);
-        menuDispatcher.showMenu();
+        MenuController menuController = new MenuController(menuService);
+        menuController.run();
     }
 }

@@ -2,47 +2,44 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package dispatcher;
+package controller;
 
-import service.MenuService;
-import service.OrderService;
-
+import dispatcher.OrderDispatcher;
+import exception.AppException;
 import java.io.IOException;
 import java.util.List;
 import java.util.Scanner;
-import exception.AppException;
 import models.MenuItem;
+import service.MenuService;
+import service.OrderService;
 import utils.InputHandler;
+import view.MenuView;
 
 /**
  *
  * @author ASUS
  */
-public class MenuDispatcher {
+public class MenuController {
 
     private MenuService menuService;
     private OrderService orderService = new OrderService();
+    private MenuView view = new MenuView();
     private Scanner scanner;
 
-    public MenuDispatcher(MenuService menuService) {
+    public MenuController(MenuService menuService) {
         this.menuService = menuService;
         this.scanner = new Scanner(System.in);
     }
 
-    public void showMenu() {
+    public void run() {
         int choice = -1;
         do {
-            System.out.println("\n===== Menu Management =====");
-            System.out.println("1. Add new Item");
-            System.out.println("2. Search Item");
-            System.out.println("3. Order management"); 
-            System.out.println("0. Exit");
-            System.out.print("Choose: ");
+            view.showMainMenu();
 
             try {
                 choice = Integer.parseInt(scanner.nextLine());
             } catch (NumberFormatException e) {
-                System.out.println("Value must be an integer.");
+                view.showNotInteger();
                 continue;
             }
 
@@ -59,7 +56,7 @@ public class MenuDispatcher {
                 case 0:
                     break;
                 default:
-                    System.out.println("Invalid choice.");
+                    view.showInvalidChoice();
                     break;
             }
         } while (choice != 0);
@@ -79,25 +76,21 @@ public class MenuDispatcher {
         try {
             menuService.addItem(newItem);
             menuService.save();
-            System.out.println("Item added successfully!");
+            view.showAddSuccess();
         } catch (AppException e) {
-            System.out.println("Error: " + e.getMessage());
+            view.showError(e.getMessage());
         } catch (IOException e) {
-            System.out.println("Error saving file: " + e.getMessage());
+            view.showSaveError(e.getMessage());
         }
     }
 
     private void searchItem() {
-        System.out.println("\n===== Search Item Menu =====");
-        System.out.println("1. Search by ID");
-        System.out.println("2. Search by Name");
-        System.out.println("0. Exit");
-        System.out.print("Choose: ");
+        view.showSearchMenu();
         int choice = -1;
         try {
             choice = Integer.parseInt(scanner.nextLine());
         } catch (NumberFormatException e) {
-            System.out.println("Value must be an integer.");
+            view.showNotInteger();
             return;
         }
         switch (choice) {
@@ -105,27 +98,27 @@ public class MenuDispatcher {
                 String id = InputHandler.readNonBlank(scanner, "Enter Item ID to search: ");
                 MenuItem item = menuService.findById(id);
                 if (item != null) {
-                    System.out.println("- " + item);
+                    view.showItem(item);
                 } else {
-                    System.out.println("Item not found.");
+                    view.showItemNotFound();
                 }
                 break;
             case 2:
                 String name = InputHandler.readNonBlank(scanner, "Enter Item Name to search: ");
                 List<MenuItem> list = menuService.findByName(name);
                 if (list.isEmpty()) {
-                    System.out.println("Item not found");
+                    view.showNoItemsFound();
                 } else {
                     for (MenuItem i : list) {
-                        System.out.println("- " + i);
+                        view.showItem(i);
                     }
                 }
                 break;
-        
+
             case 0:
                 break;
             default:
-                System.out.println("Invalid option.");
+                view.showInvalidOption();
                 break;
         }
     }
