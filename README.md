@@ -78,7 +78,7 @@ The project follows a multi-layer structure (Model – View – Controller – S
 | Package | Responsibility |
 |---|---|
 | `models` | Entity classes (`MenuItem`, `Order`, `OrderItem`, `OrderStatus`) |
-| `view` | Display only: prints menus, messages and data to the console |
+| `view` | Display only: `ConsoleView` has the shared print functions (message, error, menu), the message text is passed in by the caller |
 | `controller` | Receives user requests, validates input via `utils`, calls services and views |
 | `service` | Business logic; calls repositories when it needs to access data |
 | `repository` | Reads/writes data directly (in-memory list + `.txt` files) |
@@ -95,7 +95,7 @@ TableOrderingSystem/
 │   │   └── OrderStatus.java
 │   │
 │   ├── view/
-│   │   ├── AppView.java
+│   │   ├── ConsoleView.java
 │   │   └── MenuView.java
 │   │
 │   ├── controller/

@@ -11,6 +11,7 @@ import java.util.Scanner;
 import models.MenuItem;
 import service.MenuService;
 import utils.InputHandler;
+import view.ConsoleView;
 import view.MenuView;
 
 /**
@@ -19,8 +20,12 @@ import view.MenuView;
  */
 public class MenuController {
 
+    private static final String[] MENU_OPTIONS = {"Add new Item", "Search Item"};
+    private static final String[] SEARCH_OPTIONS = {"Search by ID", "Search by Name"};
+
     private MenuService menuService;
-    private MenuView view = new MenuView();
+    private ConsoleView console = new ConsoleView();
+    private MenuView menuView = new MenuView();
     private Scanner scanner;
 
     public MenuController(MenuService menuService, Scanner scanner) {
@@ -31,12 +36,12 @@ public class MenuController {
     public void run() {
         int choice = -1;
         do {
-            view.showMenuManagement();
+            console.showMenu("Menu Management", MENU_OPTIONS, "Back");
 
             try {
                 choice = Integer.parseInt(scanner.nextLine());
             } catch (NumberFormatException e) {
-                view.showNotInteger();
+                console.showMessage("Value must be an integer.");
                 continue;
             }
 
@@ -50,7 +55,7 @@ public class MenuController {
                 case 0:
                     break;
                 default:
-                    view.showInvalidChoice();
+                    console.showMessage("Invalid choice.");
                     break;
             }
         } while (choice != 0);
@@ -70,21 +75,21 @@ public class MenuController {
         try {
             menuService.addItem(newItem);
             menuService.save();
-            view.showAddSuccess();
+            console.showMessage("Item added successfully!");
         } catch (BusinessException e) {
-            view.showError(e.getMessage());
+            console.showError(e.getMessage());
         } catch (IOException e) {
-            view.showSaveError(e.getMessage());
+            console.showMessage("Error saving file: " + e.getMessage());
         }
     }
 
     private void searchItem() {
-        view.showSearchMenu();
+        console.showMenu("Search Item Menu", SEARCH_OPTIONS, "Exit");
         int choice = -1;
         try {
             choice = Integer.parseInt(scanner.nextLine());
         } catch (NumberFormatException e) {
-            view.showNotInteger();
+            console.showMessage("Value must be an integer.");
             return;
         }
         switch (choice) {
@@ -92,19 +97,19 @@ public class MenuController {
                 String id = InputHandler.readNonBlank(scanner, "Enter Item ID to search: ");
                 MenuItem item = menuService.findById(id);
                 if (item != null) {
-                    view.showItem(item);
+                    menuView.showItem(item);
                 } else {
-                    view.showItemNotFound();
+                    console.showMessage("Item not found.");
                 }
                 break;
             case 2:
                 String name = InputHandler.readNonBlank(scanner, "Enter Item Name to search: ");
                 List<MenuItem> list = menuService.findByName(name);
                 if (list.isEmpty()) {
-                    view.showNoItemsFound();
+                    console.showMessage("Item not found");
                 } else {
                     for (MenuItem i : list) {
-                        view.showItem(i);
+                        menuView.showItem(i);
                     }
                 }
                 break;
@@ -112,7 +117,7 @@ public class MenuController {
             case 0:
                 break;
             default:
-                view.showInvalidOption();
+                console.showMessage("Invalid option.");
                 break;
         }
     }

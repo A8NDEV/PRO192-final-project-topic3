@@ -3,7 +3,7 @@ package controller;
 import java.util.Scanner;
 import service.MenuService;
 import service.OrderService;
-import view.AppView;
+import view.ConsoleView;
 
 /**
  *
@@ -14,10 +14,12 @@ import view.AppView;
  */
 public class AppController {
 
+    private static final String[] MAIN_OPTIONS = {"Menu management", "Order management"};
+
     private final MenuService menuService;
     private final OrderService orderService;
     private final Scanner scanner = new Scanner(System.in);
-    private final AppView view = new AppView();
+    private final ConsoleView console = new ConsoleView();
     private final MenuController menuController;
 
     public AppController(MenuService menuService, OrderService orderService) {
@@ -29,12 +31,12 @@ public class AppController {
     public void run() {
         int choice = -1;
         do {
-            view.showMainMenu();
+            console.showMenu("Table-side Ordering", MAIN_OPTIONS, "Exit");
 
             try {
                 choice = Integer.parseInt(scanner.nextLine());
             } catch (NumberFormatException e) {
-                view.showNotInteger();
+                console.showMessage("Value must be an integer.");
                 continue;
             }
 
@@ -48,7 +50,7 @@ public class AppController {
                 case 0:
                     break;
                 default:
-                    view.showInvalidChoice();
+                    console.showMessage("Invalid choice.");
                     break;
             }
         } while (choice != 0);
