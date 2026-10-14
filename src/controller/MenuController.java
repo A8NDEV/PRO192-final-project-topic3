@@ -20,7 +20,7 @@ import view.MenuView;
  */
 public class MenuController {
 
-    private static final String[] MENU_OPTIONS = {"Add new Item", "Search Item"};
+    private static final String[] MENU_OPTIONS = {"Add new Item", "Search Item","Delete Item By ID"};
     private static final String[] SEARCH_OPTIONS = {"Search by ID", "Search by Name"};
 
     private MenuService menuService;
@@ -51,6 +51,9 @@ public class MenuController {
                     break;
                 case 2:
                     searchItem();
+                    break;
+                case 3:
+                    deleteItem();
                     break;
                 case 0:
                     break;
@@ -117,6 +120,25 @@ public class MenuController {
             default:
                 console.showMessage("Invalid option.");
                 break;
+        }
+    }
+    
+    private void deleteItem(){
+        String id = InputHandler.readNonBlank(scanner, "Enter Item ID: ");
+        MenuItem item = menuService.findById(id);
+        if(item == null){
+            console.showError("Item not found!");
+            return;
+        }
+        try {
+            String Confirmed = InputHandler.readConfirmed(scanner, "Confirm Yes OR NO (y/n): ");
+            menuService.deleteItem(id);
+            menuService.save();
+            console.showMessage("Item deleted successfully!");
+        } catch (BusinessException e) {
+            console.showError(e.getMessage());
+        } catch (IOException e){
+            console.showError("Error saving file: " + e.getMessage());
         }
     }
 }
