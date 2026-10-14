@@ -1,6 +1,7 @@
 package controller;
 
 import exception.BusinessException;
+import java.io.IOException;
 import java.util.List;
 import java.util.Scanner;
 import java.util.function.Predicate;
@@ -16,7 +17,8 @@ public class OrderController {
     private static final String[] ORDER_OPTIONS = {
         "Create new order for a table",
         "Add item to existing order",
-        "Update item quantity"
+        "Update item quantity",
+        "Delete order by ID"
     };
 
     private final OrderService orderService;
@@ -51,6 +53,9 @@ public class OrderController {
                     break;
                 case 3:
                     updateQuantity();
+                    break;
+                case 4:
+                    deleteOrder();
                     break;
                 case 0:
                     break;
@@ -122,6 +127,43 @@ public class OrderController {
             console.showError(e.getMessage());
         }
     }
+
+    
+    private void deleteOrder() {
+    String id = InputHandler.readNonBlank(scanner, "Enter Order ID: ");
+
+    Order order = null;
+    for (Order o : orderService.getAllOrders()) {
+        if (o.getOrderId().equalsIgnoreCase(id)) {
+            order = o;
+            break;
+        }
+    }
+
+    if (order == null) {
+        console.showError("Order not found!");
+        return;
+    }
+
+    try {
+        String confirmed = InputHandler.readConfirmed(
+                scanner, "Confirm Yes OR No (y/n): ");
+
+        if (!confirmed.equalsIgnoreCase("y")) {
+            console.showMessage("Delete cancelled.");
+            return;
+        }
+
+        orderService.deleteOrder(id);
+        orderService.save();
+        console.showMessage("Order deleted successfully!");
+    } catch (BusinessException e) {
+        console.showError(e.getMessage());
+    } catch (IOException e) {
+        console.showError("Error saving file: " + e.getMessage());
+    }
+}
+
 
     private String readTable() {
         while (true) {

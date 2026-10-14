@@ -1,5 +1,6 @@
 package service;
 
+import exception.ItemNotFoundException;
 import exception.BusinessException;
 import java.io.IOException;
 import java.util.List;
@@ -57,6 +58,24 @@ public class OrderService {
         oi.setQuantity(newQuantity);
         persist();
     }
+
+    
+    
+    public void deleteOrder(String id) {
+        Order order = orderRepository.findById(id);
+
+    if (order == null) {
+        throw new ItemNotFoundException(id);
+    }
+
+    orderRepository.deleteById(id);
+    }
+
+    public void save() throws IOException {
+    orderRepository.save();
+    }
+
+
 
     public double calculateTotal(Order order) {
         double sum = 0;

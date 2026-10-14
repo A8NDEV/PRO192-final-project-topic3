@@ -48,6 +48,17 @@ public class OrderRepository {
         }
         return null;
     }
+    
+    public boolean deleteById(String orderId) {
+        Order order = findById(orderId);
+            if (order == null) {
+                 return false;
+    }
+
+    orders.remove(order);
+    return true;
+}
+
 
     public List<Order> findAll() {
         return new ArrayList<>(orders);
