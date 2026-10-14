@@ -64,9 +64,7 @@ public class MenuController {
     private void addItem() {
         String id = InputHandler.readNonBlank(scanner, "Enter item ID: ");
         String name = InputHandler.readNonBlank(scanner, "Enter item Name: ");
-
         String category = InputHandler.readNonBlank(scanner, "Enter Category: ");
-
         double price = InputHandler.readValidPrice(scanner, "Enter Price: ");
         boolean status = InputHandler.readBoolean(scanner, "Show/Hide? (true/false): ");
 

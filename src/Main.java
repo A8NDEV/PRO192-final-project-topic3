@@ -27,6 +27,7 @@ public class Main {
         MenuController menuController = new MenuController(menuService, scanner);
 
         AppController appController = new AppController(scanner, menuController, menuService, orderService);
+        
         appController.run();
     }
 }
