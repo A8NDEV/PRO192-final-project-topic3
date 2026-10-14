@@ -55,8 +55,16 @@ public class Validator {
             double price = Double.parseDouble(trimmed);
             return price > 0;
         } catch (NumberFormatException e) {
-            return false; 
+            return false;
         }
+    }
+
+    public static boolean isConfirmed(String value) {
+        if (value == null) {
+            return false;
+        }
+        String choice = value.trim().toLowerCase();
+        return choice.equalsIgnoreCase("y") || choice.equalsIgnoreCase("n");
     }
 
     public static boolean isValidCustomerName(String value) {
