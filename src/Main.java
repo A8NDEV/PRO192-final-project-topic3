@@ -7,6 +7,7 @@ import controller.AppController;
 import controller.MenuController;
 import java.util.Scanner;
 import repository.MenuRepository;
+import repository.OrderRepository;
 import service.MenuService;
 import service.OrderService;
 
@@ -21,13 +22,13 @@ public class Main {
         MenuRepository menuRepository = new MenuRepository(menuFilePath);
         MenuService menuService = new MenuService(menuRepository);
 
-        OrderService orderService = new OrderService();
+        OrderRepository orderRepository = new OrderRepository("data/orders.txt", menuRepository);
+        OrderService orderService = new OrderService(orderRepository);
 
         Scanner scanner = new Scanner(System.in);
         MenuController menuController = new MenuController(menuService, scanner);
 
         AppController appController = new AppController(scanner, menuController, menuService, orderService);
-        
         appController.run();
     }
 }

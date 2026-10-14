@@ -13,7 +13,11 @@ import view.ConsoleView;
 
 public class OrderController {
 
-    private static final String[] ORDER_OPTIONS = {"Create new order for a table", "Add item to existing order", "Update item quantity"};
+    private static final String[] ORDER_OPTIONS = {
+        "Create new order for a table",
+        "Add item to existing order",
+        "Update item quantity"
+    };
 
     private final OrderService orderService;
     private final List<MenuItem> menu;
@@ -57,17 +61,23 @@ public class OrderController {
         } while (choice != 0);
     }
 
-    // 1. Tạo đơn mới cho một bàn, có thể thêm món ngay sau đó
     private void createOrder() {
-        String date = readValid("Order date (dd/MM/yyyy): ", Validator::isValidDate,
-                "Invalid date. Must be a real date, e.g. 26/10/2026");
-        String table = readTable();
-        String name = readValid("Customer name: ", Validator::isValidCustomerName,
-                "Name must be 1-50 characters, letters/numbers only, at least one letter.");
-        String phone = readValid("Customer phone (10 digits, starts with 0): ", Validator::isValidPhone,
-                "Invalid phone. Example: 0901234567");
+        String date = readValid("Order date (dd/MM/yyyy): ", Validator::isValidDate, "Invalid date. Must be a real date, e.g. 26/10/2026");
 
-        Order order = orderService.createOrder(date, table, name, phone);
+        String table = readTable();
+
+        String name = readValid("Customer name: ", Validator::isValidCustomerName, "Name must be 1-50 characters, letters/numbers only, at least one letter." );
+
+        String phone = readValid( "Customer phone (10 digits, starts with 0): ", Validator::isValidPhone, "Invalid phone. Example: 0901234567");
+
+        Order order;
+        try {
+            order = orderService.createOrder(date, table, name, phone);
+        } catch (BusinessException e) {
+            console.showError(e.getMessage());
+            return;
+        }
+
         console.showMessage("Created order " + order.getOrderId());
 
         String more = readLine("Add items now? (y/n): ");
@@ -83,29 +93,50 @@ public class OrderController {
 
     private void addItemTo(String orderId) {
         String itemId = InputHandler.readNonBlank(scanner, "Menu item ID: ");
+
+        MenuItem menuItem = findMenuItem(itemId);
+        if (menuItem == null) {
+            console.showMessage("Item not found.");
+            return;
+        }
+
         int qty = readInt("Quantity: ");
-        execute(() -> orderService.addItem(orderId, findMenuItem(itemId), qty), "Item added.");
+
+        try {
+            orderService.addItem(orderId, menuItem, qty);
+            console.showMessage("Item added.");
+        } catch (BusinessException e) {
+            console.showError(e.getMessage());
+        }
     }
 
     private void updateQuantity() {
         String orderId = InputHandler.readNonBlank(scanner, "Order ID: ");
         String itemId = InputHandler.readNonBlank(scanner, "Menu item ID: ");
         int qty = readInt("New quantity: ");
-        execute(() -> orderService.updateQuantity(orderId, itemId, qty), "Quantity updated.");
+
+        try {
+            orderService.updateQuantity(orderId, itemId, qty);
+            console.showMessage("Quantity updated.");
+        } catch (BusinessException e) {
+            console.showError(e.getMessage());
+        }
     }
 
     private String readTable() {
         while (true) {
             String raw = readLine("Table (e.g. 2, A1, VIP12): ");
             String table = Validator.normalizeTable(raw);
+
             if (table == null) {
-                console.showMessage("Invalid table. Use a number, 1 letter + number, or VIP + number "
-                        + "(max 5 characters, not 0). Examples: 2, A1, VIP12");
+                console.showMessage("Invalid table. Use a number, 1 letter + number, or VIP + number "+ "(max 5 characters, not 0). Examples: 2, A1, VIP12");
                 continue;
             }
+
             if (!table.equals(raw)) {
                 console.showMessage("Table set to " + table);
             }
+
             return table;
         }
     }
@@ -134,22 +165,19 @@ public class OrderController {
         }
     }
 
-    private String readValid(String prompt, Predicate<String> validator, String error) {
+    private String readValid(
+            String prompt,
+            Predicate<String> validator,
+            String error
+    ) {
         while (true) {
             String value = readLine(prompt);
+
             if (validator.test(value)) {
                 return value;
             }
-            console.showMessage(error);
-        }
-    }
 
-    private void execute(Runnable action, String successMessage) {
-        try {
-            action.run();
-            console.showMessage(successMessage);
-        } catch (BusinessException e) {
-            console.showError(e.getMessage());
+            console.showMessage(error);
         }
     }
 }
