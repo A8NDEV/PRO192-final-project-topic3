@@ -9,6 +9,7 @@ package models;
  * @author ASUS
  */
 public class MenuItem {
+
     private String itemId;
     private String itemName;
     private String category;
@@ -62,11 +63,10 @@ public class MenuItem {
     public void setStatus(boolean status) {
         this.status = status;
     }
-    
+
     @Override
-    public String toString(){
-         return "ID: " + itemId + ", Name: " + itemName + ", Category: " + category
-            + ", Price: " + price + ", Status: " + (status ? "Available" : "Unavailable");
+    public String toString() {
+        return "ID: " + itemId + ", Name: " + itemName + ", Category: " + category
+                + ", Price: " + price + ", Status: " + (status ? "Available" : "Unavailable");
     }
 }
-

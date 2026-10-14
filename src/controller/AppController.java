@@ -1,7 +1,8 @@
 package controller;
 
 import java.util.Scanner;
-import java.util.function.Supplier;
+import service.MenuService;
+import service.OrderService;
 import view.ConsoleView;
 
 /**
@@ -9,7 +10,7 @@ import view.ConsoleView;
  * @author ASUS
  */
 /**
- * Điều hướng menu chính: chọn vào menu con Menu hoặc Order.
+ * Điều hướng menu chính: chọn vào menu con Item hoặc Order.
  */
 public class AppController {
 
@@ -17,15 +18,21 @@ public class AppController {
 
     private final Scanner scanner;
     private final MenuController menuController;
-    private final Supplier<OrderController> orderControllerFactory;
+    private final MenuService menuService;
+    private final OrderService orderService;
     private final ConsoleView console = new ConsoleView();
 
-    public AppController(Scanner scanner, MenuController menuController,
-                         Supplier<OrderController> orderControllerFactory) {
+    public AppController(Scanner scanner, MenuController menuController, MenuService menuService, OrderService orderService) {
         this.scanner = scanner;
         this.menuController = menuController;
-        this.orderControllerFactory = orderControllerFactory;
+        this.menuService = menuService;
+        this.orderService = orderService;
     }
+    
+    
+    
+    
+    
 
     public void run() {
         int choice = -1;
@@ -44,7 +51,8 @@ public class AppController {
                     menuController.run();
                     break;
                 case 2:
-                    orderControllerFactory.get().run();
+                    // Tạo mới mỗi lần vào Order để lấy danh sách món mới nhất (kể cả món vừa thêm)
+                    new OrderController(orderService, menuService.getMenuList(), scanner).run();
                     break;
                 case 0:
                     break;
