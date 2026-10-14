@@ -74,4 +74,16 @@ public class MenuRepository {
         }
         return items;
     }
+    
+    public boolean delete(String id){
+        if(id == null){
+            return false;
+        }
+        for(int i = 0; i < menuList.size(); i++){
+            if(menuList.get(i).getItemId().equalsIgnoreCase(id.trim())){
+                menuList.remove(i);
+            }
+        }
+        return false;
+    }
 }
