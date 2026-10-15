@@ -71,6 +71,16 @@ public class MenuService {
         menuRepository.save();
     }
 
+    public List<MenuItem> getAvailableItems(){
+        List<MenuItem> result = new ArrayList<>();
+        for(MenuItem item : menuRepository.findAll()){
+            if(item != null && item.isStatus()){
+                result.add(item);
+            }
+        }
+        return result;
+    }
+
     public List<MenuItem> getMenuList() {
         return menuRepository.findAll();
     }

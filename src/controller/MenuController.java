@@ -52,6 +52,9 @@ public class MenuController {
                 case 3:
                     new OrderController(orderService, menuService.getMenuList(), scanner).run();
                     break;
+                case 4:
+                    displayAvailable();
+                    break;
                 case 0:
                     break;
                 default:
@@ -119,6 +122,23 @@ public class MenuController {
             default:
                 view.showInvalidOption();
                 break;
+        }
+    }
+
+    private void displayAvailable() {
+        if(menuService.getMenuList().isEmpty()) {
+            view.showMenuEmpty();
+            return ;
+        }
+        List<MenuItem> available = menuService.getAvailableItems();
+        if(available.isEmpty()) {
+            view.showNoAvailableItems();
+            return;
+        }
+                
+        view.showAvailableHeader();
+        for (MenuItem item : available) {
+            view.showItem(item);
         }
     }
 }
