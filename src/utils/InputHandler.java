@@ -4,6 +4,7 @@
  */
 package utils;
 
+import java.time.LocalDate;
 import java.util.Scanner;
 
 /**
@@ -52,5 +53,49 @@ public class InputHandler {
             }
         } while (!Validator.isValidBoolean(value));
         return Boolean.parseBoolean(value.trim());
+    }
+
+        public static int readTableNumber(Scanner scanner, String prompt) {
+        return readPositiveInt(scanner, prompt, "Table number must be a positive integer.");
+    }
+
+    public static int readQuantity(Scanner scanner, String prompt) {
+        return readPositiveInt(scanner, prompt, "Quantity must be a positive integer.");
+    }
+
+    private static int readPositiveInt(Scanner scanner, String prompt, String errorMessage) {
+        String value;
+        do {
+            System.out.print(prompt);
+            value = scanner.nextLine();
+            if (!Validator.isPositiveInt(value)) {
+                System.out.println(errorMessage);
+            }
+        } while (!Validator.isPositiveInt(value));
+        return Integer.parseInt(value.trim());
+    }
+
+    public static String readPhone(Scanner scanner, String prompt) {
+        String value;
+        do {
+            System.out.print(prompt);
+            value = scanner.nextLine();
+            if (!Validator.isValidPhone(value)) {
+                System.out.println("Invalid phone. Must be 10 digits and start with 0.");
+            }
+        } while (!Validator.isValidPhone(value));
+        return value.trim();
+    }
+
+    public static LocalDate readDate(Scanner scanner, String prompt) {
+        String value;
+        do {
+            System.out.print(prompt);
+            value = scanner.nextLine();
+            if (!Validator.isValidDate(value)) {
+                System.out.println("Invalid date. Format: dd/MM/yyyy.");
+            }
+        } while (!Validator.isValidDate(value));
+        return LocalDate.parse(value.trim(), Validator.DATE_FORMAT);
     }
 }
