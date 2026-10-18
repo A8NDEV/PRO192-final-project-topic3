@@ -13,6 +13,7 @@ import service.MenuService;
 import utils.InputHandler;
 import view.ConsoleView;
 import view.MenuView;
+import service.OrderService;
 
 /**
  *
@@ -20,18 +21,22 @@ import view.MenuView;
  */
 public class MenuController {
 
-    private static final String[] MENU_OPTIONS = {"Add new Item", "Search Item","Delete Item By ID"};
+    private static final String[] MENU_OPTIONS = {"Add new Item", "Search Item", "Delete Item By ID", "Display all items no order"};
     private static final String[] SEARCH_OPTIONS = {"Search by ID", "Search by Name"};
 
     private MenuService menuService;
     private ConsoleView console = new ConsoleView();
     private MenuView menuView = new MenuView();
     private Scanner scanner;
+    private OrderService orderService;
 
-    public MenuController(MenuService menuService, Scanner scanner) {
+    public MenuController(MenuService menuService, Scanner scanner, OrderService orderService) {
         this.menuService = menuService;
         this.scanner = scanner;
+        this.orderService = orderService;
     }
+
+    
 
     public void run() {
         int choice = -1;
@@ -54,6 +59,9 @@ public class MenuController {
                     break;
                 case 3:
                     deleteItem();
+                    break;
+                case 4:
+                    displayItemsNoOrder();
                     break;
                 case 0:
                     break;
@@ -122,11 +130,11 @@ public class MenuController {
                 break;
         }
     }
-    
-    private void deleteItem(){
+
+    private void deleteItem() {
         String id = InputHandler.readNonBlank(scanner, "Enter Item ID: ");
         MenuItem item = menuService.findById(id);
-        if(item == null){
+        if (item == null) {
             console.showError("Item not found!");
             return;
         }
@@ -137,8 +145,20 @@ public class MenuController {
             console.showMessage("Item deleted successfully!");
         } catch (BusinessException e) {
             console.showError(e.getMessage());
-        } catch (IOException e){
+        } catch (IOException e) {
             console.showError("Error saving file: " + e.getMessage());
+        }
+    }
+
+    private void displayItemsNoOrder() {
+        List<MenuItem> items = menuService.getUnorderedItems(orderService.getAllOrders());
+        if (items.isEmpty()) {
+            System.out.println("All items have been ordered.");
+            return;
+        }
+        System.out.println("---Items no orders---");
+        for (MenuItem item : items) {
+            System.out.println(item);
         }
     }
 }

@@ -12,6 +12,10 @@ import java.util.Collections;
 import java.util.List;
 import models.MenuItem;
 import repository.MenuRepository;
+import java.util.HashSet;
+import java.util.Set;
+import models.Order;
+import models.OrderItem;
 
 /**
  *
@@ -75,15 +79,34 @@ public class MenuService {
     public List<MenuItem> getMenuList() {
         return menuRepository.findAll();
     }
-    
-    public void deleteItem(String id){
+
+    public void deleteItem(String id) {
         MenuItem item = findById(id);
-        if(item == null){
+        if (item == null) {
             throw new ItemNotFoundException(id);
         }
         menuRepository.delete(id);
     }
 
+     //Hien thi mon chua co don
+    public List<MenuItem> getUnorderedItems(List<Order> orders) {
+        //danh sach cac mon da tung duoc order
+        Set<String> listItemOrder = new HashSet<>();
+        for (Order order : orders) {
+            if (order.getItemsList() != null) {
+                for (OrderItem item : order.getItemsList()) {
+                    listItemOrder.add(item.getMenuItem().getItemId().toLowerCase());
+                }
+            }
+        }
+
+        //loc ra danh sach cac mon chua tung order
+        List<MenuItem> result = new ArrayList<>();
+        for (MenuItem item : menuRepository.findAll()) {
+            if (!listItemOrder.contains(item.getItemId().toLowerCase())) {
+                result.add(item);
+            }
+        }
+        return result;
+    }
 }
-
-
