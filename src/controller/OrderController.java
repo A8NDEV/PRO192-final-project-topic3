@@ -1,31 +1,37 @@
 package controller;
 
 import exception.BusinessException;
-import java.io.IOException;
 import java.util.List;
 import java.util.Scanner;
-import java.util.function.Predicate;
+import java.util.function.Function;
 import models.MenuItem;
 import models.Order;
 import service.OrderService;
 import utils.InputHandler;
 import utils.Validator;
 import view.ConsoleView;
+import view.OrderView;
 
 public class OrderController {
 
     private static final String[] ORDER_OPTIONS = {
         "Create new order for a table",
         "Add item to existing order",
-        "Update item quantity",
-        "Delete order by ID",
-        "Sorted order by total (high to low)"
+        "Sorted order by total (high to low)",
+        "Change item quantity",
+        "Remove item / Cancel order"
+    };
+
+    private static final String[] REMOVE_OPTIONS = {
+        "Remove one item from an order",
+        "Cancel order (kept with status Cancelled for checking)"
     };
 
     private final OrderService orderService;
     private final List<MenuItem> menu;
     private final Scanner scanner;
     private final ConsoleView console = new ConsoleView();
+    private final OrderView orderView = new OrderView();
 
     public OrderController(OrderService orderService, List<MenuItem> menu, Scanner scanner) {
         this.orderService = orderService;
@@ -53,10 +59,10 @@ public class OrderController {
                     addItem();
                     break;
                 case 3:
-                    updateQuantity();
+                    changeQuantity();
                     break;
                 case 4:
-                    deleteOrder();
+                    removeOrCancel();
                     break;
                 case 5:
                     sortedOders();
@@ -70,24 +76,21 @@ public class OrderController {
         } while (choice != 0);
     }
 
+    // Mục 1: ngày đơn tự cập nhật theo thời gian thực, chỉ nhập bàn, tên và SĐT
     private void createOrder() {
-        String date = readValid("Order date (dd/MM/yyyy): ", Validator::isValidDate, "Invalid date. Must be a real date, e.g. 26/10/2026");
-
         String table = readTable();
-
-        String name = readValid("Customer name: ", Validator::isValidCustomerName, "Name must be 1-50 characters, letters/numbers only, at least one letter." );
-
-        String phone = readValid( "Customer phone (10 digits, starts with 0): ", Validator::isValidPhone, "Invalid phone. Example: 0901234567");
+        String name = readValid("Customer name: ", Validator::getCustomerNameError);
+        String phone = readValid("Customer phone (starts with 0 or 84): ", Validator::getPhoneError);
 
         Order order;
         try {
-            order = orderService.createOrder(date, table, name, phone);
+            order = orderService.createOrder(table, name, phone);
         } catch (BusinessException e) {
             console.showError(e.getMessage());
             return;
         }
 
-        console.showMessage("Created order " + order.getOrderId());
+        console.showMessage("Created order " + order.getOrderId() + " on " + order.getOrderDate());
 
         String more = readLine("Add items now? (y/n): ");
         while (more.equalsIgnoreCase("y")) {
@@ -96,7 +99,11 @@ public class OrderController {
         }
     }
 
+    // Mục 2
     private void addItem() {
+        if (!showOpenOrders()) {
+            return;
+        }
         addItemTo(InputHandler.readNonBlank(scanner, "Order ID: "));
     }
 
@@ -119,63 +126,120 @@ public class OrderController {
         }
     }
 
-    private void updateQuantity() {
+    // Mục 3: đặt lại số lượng của một món đã có trong đơn
+    private void changeQuantity() {
+        if (!showOpenOrders()) {
+            return;
+        }
         String orderId = InputHandler.readNonBlank(scanner, "Order ID: ");
         String itemId = InputHandler.readNonBlank(scanner, "Menu item ID: ");
         int qty = readInt("New quantity: ");
 
         try {
             orderService.updateQuantity(orderId, itemId, qty);
-            console.showMessage("Quantity updated.");
+            console.showMessage("Quantity changed.");
         } catch (BusinessException e) {
             console.showError(e.getMessage());
         }
     }
 
-    
-    private void deleteOrder() {
-    String id = InputHandler.readNonBlank(scanner, "Enter Order ID: ");
-
-    Order order = null;
-    for (Order o : orderService.getAllOrders()) {
-        if (o.getOrderId().equalsIgnoreCase(id)) {
-            order = o;
-            break;
-        }
-    }
-
-    if (order == null) {
-        console.showError("Order not found!");
-        return;
-    }
-
-    try {
-        String confirmed = InputHandler.readConfirmed(
-                scanner, "Confirm Yes OR No (y/n): ");
-
-        if (!confirmed.equalsIgnoreCase("y")) {
-            console.showMessage("Delete cancelled.");
+    // Mục 4: xóa món lẻ trong đơn, hoặc đóng đơn (chuyển sang Cancelled, vẫn giữ để tra cứu)
+    private void removeOrCancel() {
+        console.showMenu("Remove Item / Cancel Order", REMOVE_OPTIONS, "Back");
+        int choice;
+        try {
+            choice = Integer.parseInt(scanner.nextLine());
+        } catch (NumberFormatException e) {
+            console.showMessage("Value must be an integer.");
             return;
         }
 
-        orderService.deleteOrder(id);
-        orderService.save();
-        console.showMessage("Order deleted successfully!");
-    } catch (BusinessException e) {
-        console.showError(e.getMessage());
-    } catch (IOException e) {
-        console.showError("Error saving file: " + e.getMessage());
+        switch (choice) {
+            case 1:
+                removeItem();
+                break;
+            case 2:
+                cancelOrder();
+                break;
+            case 0:
+                break;
+            default:
+                console.showMessage("Invalid option.");
+                break;
+        }
     }
-}
 
+    private void removeItem() {
+        if (!showOpenOrders()) {
+            return;
+        }
+        String orderId = InputHandler.readNonBlank(scanner, "Order ID: ");
+        if (orderService.findById(orderId) == null) {
+            console.showError("Order not found!");
+            return;
+        }
+        String itemId = InputHandler.readNonBlank(scanner, "Menu item ID to remove: ");
+        if (!confirm()) {
+            console.showMessage("No changes made.");
+            return;
+        }
 
+        try {
+            orderService.removeItem(orderId, itemId);
+            console.showMessage("Item removed from order.");
+        } catch (BusinessException e) {
+            console.showError(e.getMessage());
+        }
+    }
+
+    private void cancelOrder() {
+        if (!showOpenOrders()) {
+            return;
+        }
+        String orderId = InputHandler.readNonBlank(scanner, "Order ID: ");
+        if (orderService.findById(orderId) == null) {
+            console.showError("Order not found!");
+            return;
+        }
+        if (!confirm()) {
+            console.showMessage("No changes made.");
+            return;
+        }
+
+        try {
+            orderService.cancelOrder(orderId);
+            console.showMessage("Order cancelled. It is kept with status Cancelled.");
+        } catch (BusinessException e) {
+            console.showError(e.getMessage());
+        }
+    }
+
+    // In danh sách đơn đang mở để người dùng nhìn và chọn mã đơn; false nếu không có đơn nào
+    private boolean showOpenOrders() {
+        List<Order> openOrders = orderService.getOpenOrders();
+        if (openOrders.isEmpty()) {
+            console.showMessage("No open orders.");
+            return false;
+        }
+        console.showMessage("\n----- Open orders -----");
+        for (Order order : openOrders) {
+            orderView.showOrderSummary(order, orderService.calculateTotal(order));
+        }
+        return true;
+    }
+
+    private boolean confirm() {
+        return InputHandler.readConfirmed(scanner, "Confirm Yes OR No (y/n): ").equalsIgnoreCase("y");
+    }
+
+    // Table: 1 chữ cái + số
     private String readTable() {
         while (true) {
-            String raw = readLine("Table (e.g. 2, A1, VIP12): ");
+            String raw = readLine("Table (1 letter + number, e.g. A1): ");
             String table = Validator.normalizeTable(raw);
 
             if (table == null) {
-                console.showMessage("Invalid table. Use a number, 1 letter + number, or VIP + number "+ "(max 5 characters, not 0). Examples: 2, A1, VIP12");
+                console.showMessage("Invalid table. A valid table is 1 letter followed by a number. Examples: A1, B12");
                 continue;
             }
 
@@ -211,21 +275,18 @@ public class OrderController {
         }
     }
 
-    private String readValid(
-            String prompt,
-            Predicate<String> validator,
-            String error
-    ) {
+    // Hỏi lại đến khi hợp lệ; errorChecker trả về câu báo lỗi cụ thể, null nếu hợp lệ
+    private String readValid(String prompt, Function<String, String> errorChecker) {
         while (true) {
             String value = readLine(prompt);
-
-            if (validator.test(value)) {
+            String error = errorChecker.apply(value);
+            if (error == null) {
                 return value;
             }
-
             console.showMessage(error);
         }
     }
+<<<<<<< HEAD
     private void sortedOders() {
         List<Order> sorted = orderService.sortedByTotalDesc();
         if(sorted.isEmpty()) {
@@ -240,3 +301,6 @@ public class OrderController {
 
     }
 }
+=======
+}
+>>>>>>> 6aff47af6ff7bed76d95b4895c07c25791a82ee2
