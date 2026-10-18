@@ -18,7 +18,8 @@ public class OrderController {
         "Create new order for a table",
         "Add item to existing order",
         "Update item quantity",
-        "Delete order by ID"
+        "Delete order by ID",
+        "Sorted order by total (high to low)"
     };
 
     private final OrderService orderService;
@@ -56,6 +57,9 @@ public class OrderController {
                     break;
                 case 4:
                     deleteOrder();
+                    break;
+                case 5:
+                    sortedOders();
                     break;
                 case 0:
                     break;
@@ -221,5 +225,18 @@ public class OrderController {
 
             console.showMessage(error);
         }
+    }
+    private void sortedOders() {
+        List<Order> sorted = orderService.sortedByTotalDesc();
+        if(sorted.isEmpty()) {
+            System.out.println("No orders available.");
+            return;
+        } System.out.println("\n Orders sorted by total (high to low)");
+        for(Order o : sorted) {
+             System.out.println("ID: " + o.getOrderId() 
+                                + "| Table: " + o.getTableNumber()
+                                + " | Total: " + orderService.calculateTotal(o));
+        }
+
     }
 }

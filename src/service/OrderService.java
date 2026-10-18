@@ -113,4 +113,12 @@ public class OrderService {
             throw new BusinessException("Cannot save orders: " + e.getMessage());
         }
     }
+    //sap xep don theo tong tien giam dan
+public List<Order> sortedByTotalDesc() {
+    List<Order> sortedList = orderRepository.findAll();
+    sortedList.sort((a, b) -> Double.compare(calculateTotal(b), calculateTotal(a)));
+    return sortedList;
 }
+}
+
+
