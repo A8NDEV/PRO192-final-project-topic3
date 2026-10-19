@@ -5,6 +5,7 @@
 package service;
 
 import exception.DuplicateItemException;
+import exception.ItemNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -60,7 +61,7 @@ public class MenuService {
         return result;
     }
 
-    public void addItem(MenuItem item) throws DuplicateItemException {
+    public void addItem(MenuItem item) {
         if (findById(item.getItemId()) != null) {
             throw new DuplicateItemException(item.getItemId());
         }
@@ -84,5 +85,15 @@ public class MenuService {
     public List<MenuItem> getMenuList() {
         return menuRepository.findAll();
     }
+    
+    public void deleteItem(String id){
+        MenuItem item = findById(id);
+        if(item == null){
+            throw new ItemNotFoundException(id);
+        }
+        menuRepository.delete(id);
+    }
 
 }
+
+

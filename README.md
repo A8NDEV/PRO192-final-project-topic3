@@ -78,11 +78,11 @@ The project follows a multi-layer structure (Model – View – Controller – S
 | Package | Responsibility |
 |---|---|
 | `models` | Entity classes (`MenuItem`, `Order`, `OrderItem`, `OrderStatus`) |
-| `view` | Display only: prints menus, messages and data to the console |
+| `view` | Display only: `ConsoleView` has the shared print functions (message, error, menu), the message text is passed in by the caller |
 | `controller` | Receives user requests, validates input via `utils`, calls services and views |
 | `service` | Business logic; calls repositories when it needs to access data |
 | `repository` | Reads/writes data directly (in-memory list + `.txt` files) |
-| `exception` | Custom exception for each error case (`AppException` is the base class) |
+| `exception` | Custom exception for each error case (`BusinessException` is the unchecked base class) |
 | `utils` | Shared helpers (`Validator`, `InputHandler`) |
 
 ```text
@@ -95,9 +95,11 @@ TableOrderingSystem/
 │   │   └── OrderStatus.java
 │   │
 │   ├── view/
+│   │   ├── ConsoleView.java
 │   │   └── MenuView.java
 │   │
 │   ├── controller/
+│   │   ├── AppController.java
 │   │   ├── MenuController.java
 │   │   └── OrderController.java
 │   │
@@ -109,7 +111,7 @@ TableOrderingSystem/
 │   │   └── MenuRepository.java
 │   │
 │   ├── exception/
-│   │   ├── AppException.java
+│   │   ├── BusinessException.java
 │   │   └── DuplicateItemException.java
 │   │
 │   ├── utils/
@@ -122,10 +124,18 @@ TableOrderingSystem/
 │   ├── menu.txt
 │   └── orders.txt
 │
+├── docs/
+│   └── ARCHITECTURE.md
+│
 ├── nbproject/
 ├── build.xml
 └── README.md
 ```
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the rules about which layer may call which.
+
+The console flow is: **Main Menu** (`AppController`) → **Menu management**
+(`MenuController`) or **Order management** (`OrderController`).
 
 > **Status:** the Menu feature is fully split into the layers above. The Order
 > feature has been moved into the new packages but is not split yet:

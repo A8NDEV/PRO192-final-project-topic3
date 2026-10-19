@@ -98,4 +98,16 @@ public class InputHandler {
         } while (!Validator.isValidDate(value));
         return LocalDate.parse(value.trim(), Validator.DATE_FORMAT);
     }
+    
+    public static String readConfirmed(Scanner scanner, String promt){
+        String value;
+        do{
+            System.out.print(promt);
+            value = scanner.nextLine().trim();
+            if(!Validator.isNotBlank(value) || !Validator.isConfirmed(value)){
+                System.out.println("Invalid value. Enter Y or N");
+            }
+        } while(!Validator.isNotBlank(value) || !Validator.isConfirmed(value));
+        return value.trim();
+    }
 }

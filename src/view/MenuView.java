@@ -3,7 +3,12 @@ package view;
 import models.MenuItem;
 
 /**
- * Hiển thị phần Menu ra console. Chỉ in, không đọc input và không xử lý logic.
+ *
+ * @author ASUS
+ */
+/**
+ * Hiển thị riêng cho món trong menu. Chỉ in, không đọc input và không xử lý
+ * logic.
  */
 public class MenuView {
 
@@ -74,4 +79,5 @@ public class MenuView {
     public void showNoAvailableItems() {
         System.out.println("No items are currently available.");
     }
+
 }

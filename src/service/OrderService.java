@@ -1,57 +1,141 @@
 package service;
 
+import exception.BusinessException;
+import java.io.IOException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import models.MenuItem;
 import models.Order;
 import models.OrderItem;
+import models.OrderStatus;
+import repository.OrderRepository;
+
 
 public class OrderService {
-    private final List<Order> orders = new ArrayList<>();
-    private int counter = 1;
 
-    // Tạo đơn mới cho một bàn
-    public Order createOrder(String orderDate, String tableNumber,
-                             String customerName, String customerPhone) {
-        String id = String.format("O%04d", counter++);
-        Order order = new Order(id, orderDate, tableNumber, customerName, customerPhone);
-        orders.add(order);
+    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private final OrderRepository orderRepository;
+
+    public OrderService(OrderRepository orderRepository) {
+        this.orderRepository = orderRepository;
+    }
+
+    // Date tự cập nhật theo ngày hiện tại
+    public Order createOrder(String tableNumber, String customerName, String customerPhone) {
+        String today = LocalDate.now().format(DATE_FMT);
+        Order order = new Order(orderRepository.nextId(), today, tableNumber, customerName, customerPhone);
+        orderRepository.add(order);
+        persist();
         return order;
     }
 
-    // Thêm món kèm số lượng vào đơn đã có (món trùng thì cộng dồn)
     public void addItem(String orderId, MenuItem menuItem, int quantity) {
         if (menuItem == null) {
-            throw new IllegalArgumentException("Menu item not found.");
+            throw new BusinessException("Menu item not found.");
         }
         if (!menuItem.isStatus()) {
-            throw new IllegalArgumentException("Item " + menuItem.getItemId() + " is currently unavailable.");
+            throw new BusinessException("Item " + menuItem.getItemId() + " is currently unavailable.");
         }
         if (quantity <= 0) {
-            throw new IllegalArgumentException("Quantity must be greater than 0.");
+            throw new BusinessException("Quantity must be greater than 0.");
         }
         Order order = requireOrder(orderId);
+        requireEditable(order);
         OrderItem existing = findItem(order, menuItem.getItemId());
         if (existing != null) {
             existing.setQuantity(existing.getQuantity() + quantity);
         } else {
             order.getItemsList().add(new OrderItem(menuItem, quantity));
         }
+        persist();
     }
 
-    // Sửa số lượng món trong đơn
     public void updateQuantity(String orderId, String itemId, int newQuantity) {
         if (newQuantity <= 0) {
-            throw new IllegalArgumentException("Quantity must be greater than 0.");
+            throw new BusinessException("Quantity must be greater than 0.");
         }
-        OrderItem oi = findItem(requireOrder(orderId), itemId);
+        Order order = requireOrder(orderId);
+        requireEditable(order);
+        OrderItem oi = findItem(order, itemId);
         if (oi == null) {
-            throw new IllegalArgumentException("Item " + itemId + " is not in order " + orderId + ".");
+            throw new BusinessException("Item " + itemId + " is not in order " + orderId + ".");
         }
         oi.setQuantity(newQuantity);
+        persist();
     }
 
-    // Tổng tiền của một đơn (tính động)
+    // delete món theo ý muốn 
+    public void removeItem(String orderId, String itemId) {
+        Order order = requireOrder(orderId);
+        requireEditable(order);
+        OrderItem oi = findItem(order, itemId);
+        if (oi == null) {
+            throw new BusinessException("Item " + itemId + " is not in order " + orderId + ".");
+        }
+        order.getItemsList().remove(oi);
+        persist();
+    }
+
+    // Đóng đơn: đổi trạng thái sang CANCELLED
+    public void cancelOrder(String orderId) {
+        Order order = requireOrder(orderId);
+        if (order.getStatus() == OrderStatus.CANCELLED) {
+            throw new BusinessException("Order " + orderId + " is already cancelled.");
+        }
+        order.setStatus(OrderStatus.CANCELLED);
+        persist();
+    }
+
+    // hiển thị các đơn hàng đang mở
+    public List<Order> getOpenOrders() {
+        List<Order> open = new ArrayList<>();
+        for (Order order : orderRepository.findAll()) {
+            if (order.getStatus() == OrderStatus.PENDING) {
+                open.add(order);
+            }
+        }
+        return open;
+    }
+
+    public Order findById(String orderId) {
+        return orderRepository.findById(orderId);
+    }
+
+    // Một bàn có thể có nhiều đơn nên trả về danh sách
+    public List<Order> searchByTable(String tableNumber) {
+        List<Order> result = new ArrayList<>();
+        if (tableNumber == null) {
+            return result;
+        }
+        String key = tableNumber.trim();
+        for (Order order : orderRepository.findAll()) {
+            if (order.getTableNumber() != null && order.getTableNumber().equalsIgnoreCase(key)) {
+                result.add(order);
+            }
+        }
+        return result;
+    }
+
+    // Mã đơn là duy nhất nên trả về 1 đơn, hoặc null nếu không thấy
+    public Order searchByOrderId(String orderId) {
+        if (orderId == null) {
+            return null;
+        }
+        String key = orderId.trim();
+        for (Order order : orderRepository.findAll()) {
+            if (order.getOrderId().equalsIgnoreCase(key)) {
+                return order;
+            }
+        }
+        return null;
+    }
+
+    public void save() throws IOException {
+        orderRepository.save();
+    }
+
     public double calculateTotal(Order order) {
         double sum = 0;
         for (OrderItem oi : order.getItemsList()) {
@@ -60,20 +144,8 @@ public class OrderService {
         return sum;
     }
 
-    // Hàm hỗ trợ cho người làm lưu/đọc file và tìm kiếm
     public List<Order> getAllOrders() {
-        return new ArrayList<>(orders);
-    }
-
-    // Nạp đơn đọc từ file, cập nhật bộ đếm để mã mới không trùng
-    public void loadOrders(List<Order> loaded) {
-        orders.clear();
-        orders.addAll(loaded);
-        int max = 0;
-        for (Order o : loaded) {
-            max = Math.max(max, Integer.parseInt(o.getOrderId().substring(1)));
-        }
-        counter = max + 1;
+        return orderRepository.findAll();
     }
 
     private OrderItem findItem(Order order, String itemId) {
@@ -85,13 +157,26 @@ public class OrderService {
         return null;
     }
 
-    // Tìm đơn theo mã, không thấy thì báo lỗi (chỉ dùng nội bộ)
     private Order requireOrder(String orderId) {
-        for (Order o : orders) {
-            if (o.getOrderId().equalsIgnoreCase(orderId)) {
-                return o;
-            }
+        Order order = orderRepository.findById(orderId);
+        if (order == null) {
+            throw new BusinessException("Order " + orderId + " not found.");
         }
-        throw new IllegalArgumentException("Order " + orderId + " not found.");
+        return order;
+    }
+
+    // Đơn đã hủy chỉ có thể xem
+    private void requireEditable(Order order) {
+        if (order.getStatus() == OrderStatus.CANCELLED) {
+            throw new BusinessException("Order " + order.getOrderId() + " is cancelled and cannot be modified.");
+        }
+    }
+
+    private void persist() {
+        try {
+            orderRepository.save();
+        } catch (IOException e) {
+            throw new BusinessException("Cannot save orders: " + e.getMessage());
+        }
     }
 }
