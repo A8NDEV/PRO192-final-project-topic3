@@ -61,6 +61,25 @@ public class Validator {
         }
     }
 
+        // Dùng 'uuuu' thay vì 'yyyy' thì chế độ STRICT mới chặn được ngày như 31/02
+    public static final DateTimeFormatter DATE_FORMAT
+            = DateTimeFormatter.ofPattern("dd/MM/uuuu").withResolverStyle(ResolverStyle.STRICT);
+
+    public static boolean isPositiveInt(String value) {
+        if (value == null) {
+            return false;
+        }
+        String trimmed = value.trim();
+        if (!trimmed.matches("^[0-9]+$")) {
+            return false;
+        }
+        try {
+            return Integer.parseInt(trimmed) > 0;
+        } catch (NumberFormatException e) {
+            return false; // số quá lớn, tràn int
+        }
+    }
+    
     public static boolean isConfirmed(String value) {
         if (value == null) {
             return false;
@@ -141,6 +160,7 @@ public class Validator {
             return false;
         }
     }
+
 
     //Chuẩn hóa cách đặt tên cho table (1 chữ cái tự động in hoa và kèm theo số, ví dụ : A1, B12)
     public static String normalizeTable(String value) {

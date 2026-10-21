@@ -1,0 +1,3 @@
+M001|Fried Rice|Main Course|50000|true
+M002|Beef Steak|Main Course|120000|false
+M003|Pizza|Main Course|150000|true

@@ -21,7 +21,13 @@ import service.OrderService;
  */
 public class MenuController {
 
-    private static final String[] MENU_OPTIONS = {"Add new Item", "Search Item", "Delete Item By ID", "Display all items no order"};
+    private static final String[] MENU_OPTIONS = {
+        "Add new Item",
+        "Search Item",
+        "Delete Item By ID",
+        "Display available items",
+        "Display all items no order"
+    };
     private static final String[] SEARCH_OPTIONS = {"Search by ID", "Search by Name"};
 
     private MenuService menuService;
@@ -35,8 +41,6 @@ public class MenuController {
         this.scanner = scanner;
         this.orderService = orderService;
     }
-
-    
 
     public void run() {
         int choice = -1;
@@ -61,6 +65,9 @@ public class MenuController {
                     deleteItem();
                     break;
                 case 4:
+                    displayAvailable();
+                    break;
+                case 5:
                     displayItemsNoOrder();
                     break;
                 case 0:
@@ -139,7 +146,10 @@ public class MenuController {
             return;
         }
         try {
-            String Confirmed = InputHandler.readConfirmed(scanner, "Confirm Yes OR NO (y/n): ");
+            if (!InputHandler.readConfirmed(scanner, "Confirm Yes OR NO (y/n): ")) {
+                console.showMessage("No changes made.");
+                return;
+            }
             menuService.deleteItem(id);
             menuService.save();
             console.showMessage("Item deleted successfully!");
@@ -150,15 +160,35 @@ public class MenuController {
         }
     }
 
-    private void displayItemsNoOrder() {
-        List<MenuItem> items = menuService.getUnorderedItems(orderService.getAllOrders());
-        if (items.isEmpty()) {
-            System.out.println("All items have been ordered.");
+    private void displayAvailable() {
+        if (menuService.getMenuList().isEmpty()) {
+            menuView.showMenuEmpty();
             return;
         }
-        System.out.println("---Items no orders---");
+        List<MenuItem> available = menuService.getAvailableItems();
+        if (available.isEmpty()) {
+            menuView.showNoAvailableItems();
+            return;
+        }
+        menuView.showAvailableHeader();
+        for (MenuItem item : available) {
+            menuView.showItem(item);
+        }
+    }
+
+    private void displayItemsNoOrder() {
+        if (orderService == null) {
+            console.showError("Order service is not configured.");
+            return;
+        }
+        List<MenuItem> items = menuService.getUnorderedItems(orderService.getAllOrders());
+        if (items.isEmpty()) {
+            console.showMessage("All items have been ordered.");
+            return;
+        }
+        console.showMessage("\n----- Items with no orders -----");
         for (MenuItem item : items) {
-            System.out.println(item);
+            menuView.showItem(item);
         }
     }
 }

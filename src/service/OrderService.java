@@ -103,6 +103,35 @@ public class OrderService {
         return orderRepository.findById(orderId);
     }
 
+    // Một bàn có thể có nhiều đơn nên trả về danh sách
+    public List<Order> searchByTable(String tableNumber) {
+        List<Order> result = new ArrayList<>();
+        if (tableNumber == null) {
+            return result;
+        }
+        String key = tableNumber.trim();
+        for (Order order : orderRepository.findAll()) {
+            if (order.getTableNumber() != null && order.getTableNumber().equalsIgnoreCase(key)) {
+                result.add(order);
+            }
+        }
+        return result;
+    }
+
+    // Mã đơn là duy nhất nên trả về 1 đơn, hoặc null nếu không thấy
+    public Order searchByOrderId(String orderId) {
+        if (orderId == null) {
+            return null;
+        }
+        String key = orderId.trim();
+        for (Order order : orderRepository.findAll()) {
+            if (order.getOrderId().equalsIgnoreCase(key)) {
+                return order;
+            }
+        }
+        return null;
+    }
+
     public void save() throws IOException {
         orderRepository.save();
     }

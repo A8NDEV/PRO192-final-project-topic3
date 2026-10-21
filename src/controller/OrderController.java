@@ -6,6 +6,7 @@ import java.util.Scanner;
 import java.util.function.Function;
 import models.MenuItem;
 import models.Order;
+import service.MenuService;
 import service.OrderService;
 import utils.InputHandler;
 import utils.Validator;
@@ -17,9 +18,10 @@ public class OrderController {
     private static final String[] ORDER_OPTIONS = {
         "Create new order for a table",
         "Add item to existing order",
-        "Sorted order by total (high to low)",
         "Change item quantity",
-        "Remove item / Cancel order"
+        "Remove item / Cancel order",
+        "Search order",
+        "Sorted order by total (high to low)"
     };
 
     private static final String[] REMOVE_OPTIONS = {
@@ -27,15 +29,20 @@ public class OrderController {
         "Cancel order (kept with status Cancelled for checking)"
     };
 
+    private static final String[] SEARCH_OPTIONS = {
+        "Search by table",
+        "Search by order ID"
+    };
+
     private final OrderService orderService;
-    private final List<MenuItem> menu;
+    private final MenuService menuService;
     private final Scanner scanner;
     private final ConsoleView console = new ConsoleView();
     private final OrderView orderView = new OrderView();
 
-    public OrderController(OrderService orderService, List<MenuItem> menu, Scanner scanner) {
+    public OrderController(OrderService orderService, MenuService menuService, Scanner scanner) {
         this.orderService = orderService;
-        this.menu = menu;
+        this.menuService = menuService;
         this.scanner = scanner;
     }
 
@@ -65,6 +72,9 @@ public class OrderController {
                     removeOrCancel();
                     break;
                 case 5:
+                    searchOrder();
+                    break;
+                case 6:
                     sortedOders();
                     break;
                 case 0:
@@ -213,6 +223,56 @@ public class OrderController {
             console.showError(e.getMessage());
         }
     }
+    //tìm theo bàn hoăc mã đơn
+
+    private void searchOrder() {
+        int choice = -1;
+        do {
+            console.showMenu("Search Order", SEARCH_OPTIONS, "Back");
+            try {
+                choice = Integer.parseInt(scanner.nextLine());
+            } catch (NumberFormatException e) {
+                console.showMessage("Value must be an integer.");
+                return;
+            }
+            switch (choice) {
+                case 1:
+                    searchByTable();
+                    break;
+                case 2:
+                    searchByOrderId();
+                    break;
+                case 0:
+                    break;
+                default:
+                    console.showMessage("Invalid option.");
+                    break;
+            }
+        } while (choice != 0);
+    }
+
+    private void searchByTable() {
+        String table = readTable();
+        List<Order> found = orderService.searchByTable(table);
+        if (found.isEmpty()) {
+            console.showMessage("No orders found for table " + table + ".");
+            return;
+        }
+        console.showMessage("\n----- Orders of table " + table + " -----");
+        for (Order order : found) {
+            orderView.showOrderSummary(order, orderService.calculateTotal(order));
+        }
+    }
+
+    private void searchByOrderId() {
+        String orderId = InputHandler.readNonBlank(scanner, "Order ID: ");
+        Order order = orderService.searchByOrderId(orderId);
+        if (order == null) {
+            console.showError("Order not found!");
+            return;
+        }
+        orderView.showOrderSummary(order, orderService.calculateTotal(order));
+    }
 
     // In danh sách đơn đang mở để người dùng nhìn và chọn mã đơn; false nếu không có đơn nào
     private boolean showOpenOrders() {
@@ -229,13 +289,13 @@ public class OrderController {
     }
 
     private boolean confirm() {
-        return InputHandler.readConfirmed(scanner, "Confirm Yes OR No (y/n): ").equalsIgnoreCase("y");
+        return InputHandler.readConfirmed(scanner, "Confirm Yes OR No (y/n): ");
     }
 
     // Table: 1 chữ cái + số
     private String readTable() {
         while (true) {
-            String raw = readLine("Table (1 letter + number, e.g. A1): ");
+            String raw = readLine("Table : ");
             String table = Validator.normalizeTable(raw);
 
             if (table == null) {
@@ -252,12 +312,7 @@ public class OrderController {
     }
 
     private MenuItem findMenuItem(String itemId) {
-        for (MenuItem m : menu) {
-            if (m.getItemId().equalsIgnoreCase(itemId)) {
-                return m;
-            }
-        }
-        return null;
+        return menuService.findById(itemId);
     }
 
     private String readLine(String prompt) {
@@ -286,21 +341,16 @@ public class OrderController {
             console.showMessage(error);
         }
     }
-<<<<<<< HEAD
+
     private void sortedOders() {
         List<Order> sorted = orderService.sortedByTotalDesc();
-        if(sorted.isEmpty()) {
-            System.out.println("No orders available.");
+        if (sorted.isEmpty()) {
+            console.showMessage("No orders available.");
             return;
-        } System.out.println("\n Orders sorted by total (high to low)");
-        for(Order o : sorted) {
-             System.out.println("ID: " + o.getOrderId() 
-                                + "| Table: " + o.getTableNumber()
-                                + " | Total: " + orderService.calculateTotal(o));
         }
-
+        console.showMessage("\n----- Orders sorted by total (high to low) -----");
+        for (Order o : sorted) {
+            orderView.showOrderSummary(o, orderService.calculateTotal(o));
+        }
     }
 }
-=======
-}
->>>>>>> 6aff47af6ff7bed76d95b4895c07c25791a82ee2

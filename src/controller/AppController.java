@@ -1,8 +1,7 @@
 package controller;
 
 import java.util.Scanner;
-import service.MenuService;
-import service.OrderService;
+
 import view.ConsoleView;
 
 /**
@@ -18,15 +17,13 @@ public class AppController {
 
     private final Scanner scanner;
     private final MenuController menuController;
-    private final MenuService menuService;
-    private final OrderService orderService;
+    private final OrderController orderController;
     private final ConsoleView console = new ConsoleView();
 
-    public AppController(Scanner scanner, MenuController menuController, MenuService menuService, OrderService orderService) {
+    public AppController(Scanner scanner, MenuController menuController, OrderController orderController) {
         this.scanner = scanner;
         this.menuController = menuController;
-        this.menuService = menuService;
-        this.orderService = orderService;
+        this.orderController = orderController;
     }
     
     
@@ -51,8 +48,7 @@ public class AppController {
                     menuController.run();
                     break;
                 case 2:
-                    // Tạo mới mỗi lần vào Order để lấy danh sách món mới nhất (kể cả món vừa thêm)
-                    new OrderController(orderService, menuService.getMenuList(), scanner).run();
+                    orderController.run();
                     break;
                 case 0:
                     break;
