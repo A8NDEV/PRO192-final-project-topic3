@@ -17,6 +17,7 @@ public class OrderController {
     private static final String[] ORDER_OPTIONS = {
         "Create new order for a table",
         "Add item to existing order",
+        "Sorted order by total (high to low)",
         "Change item quantity",
         "Remove item / Cancel order",
         "Search order"
@@ -71,6 +72,7 @@ public class OrderController {
                     break;
                 case 5:
                     searchOrder();
+                    sortedOders();
                     break;
                 case 0:
                     break;
@@ -341,4 +343,19 @@ public class OrderController {
             console.showMessage(error);
         }
     }
+}
+    private void sortedOders() {
+        List<Order> sorted = orderService.sortedByTotalDesc();
+        if(sorted.isEmpty()) {
+            System.out.println("No orders available.");
+            return;
+        } System.out.println("\n Orders sorted by total (high to low)");
+        for(Order o : sorted) {
+             System.out.println("ID: " + o.getOrderId() 
+                                + "| Table: " + o.getTableNumber()
+                                + " | Total: " + orderService.calculateTotal(o));
+        }
+
+    }
+}
 }
