@@ -218,30 +218,32 @@ public class OrderController {
             console.showError(e.getMessage());
         }
     }
-     //tìm theo bàn hoăc mã đơn
-    private void searchOrder() {
-        console.showMenu("Search Order", SEARCH_OPTIONS, "Back");
-        int choice;
-        try {
-            choice = Integer.parseInt(scanner.nextLine());
-        } catch (NumberFormatException e) {
-            console.showMessage("Value must be an integer.");
-            return;
-        }
+    //tìm theo bàn hoăc mã đơn
 
-        switch (choice) {
-            case 1:
-                searchByTable();
-                break;
-            case 2:
-                searchByOrderId();
-                break;
-            case 0:
-                break;
-            default:
-                console.showMessage("Invalid option.");
-                break;
-        }
+    private void searchOrder() {
+        int choice = -1;
+        do {
+            console.showMenu("Search Order", SEARCH_OPTIONS, "Back");
+            try {
+                choice = Integer.parseInt(scanner.nextLine());
+            } catch (NumberFormatException e) {
+                console.showMessage("Value must be an integer.");
+                return;
+            }
+            switch (choice) {
+                case 1:
+                    searchByTable();
+                    break;
+                case 2:
+                    searchByOrderId();
+                    break;
+                case 0:
+                    break;
+                default:
+                    console.showMessage("Invalid option.");
+                    break;
+            }
+        } while (choice != 0);
     }
 
     private void searchByTable() {
@@ -288,7 +290,7 @@ public class OrderController {
     // Table: 1 chữ cái + số
     private String readTable() {
         while (true) {
-            String raw = readLine("Table (1 letter + number, e.g. A1): ");
+            String raw = readLine("Table : ");
             String table = Validator.normalizeTable(raw);
 
             if (table == null) {
