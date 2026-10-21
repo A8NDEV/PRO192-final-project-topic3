@@ -99,15 +99,15 @@ public class InputHandler {
         return LocalDate.parse(value.trim(), Validator.DATE_FORMAT);
     }
     
-    public static String readConfirmed(Scanner scanner, String promt){
+    public static boolean readConfirmed(Scanner scanner, String prompt) {
         String value;
-        do{
-            System.out.print(promt);
+        do {
+            System.out.print(prompt);
             value = scanner.nextLine().trim();
-            if(!Validator.isNotBlank(value) || !Validator.isConfirmed(value)){
+            if (!Validator.isConfirmed(value)) {
                 System.out.println("Invalid value. Enter Y or N");
             }
-        } while(!Validator.isNotBlank(value) || !Validator.isConfirmed(value));
-        return value.trim();
+        } while (!Validator.isConfirmed(value));
+        return value.equalsIgnoreCase("y");
     }
 }

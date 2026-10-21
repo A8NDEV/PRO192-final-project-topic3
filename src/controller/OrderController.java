@@ -289,7 +289,7 @@ public class OrderController {
     }
 
     private boolean confirm() {
-        return InputHandler.readConfirmed(scanner, "Confirm Yes OR No (y/n): ").equalsIgnoreCase("y");
+        return InputHandler.readConfirmed(scanner, "Confirm Yes OR No (y/n): ");
     }
 
     // Table: 1 chữ cái + số

@@ -146,8 +146,7 @@ public class MenuController {
             return;
         }
         try {
-            String confirmed = InputHandler.readConfirmed(scanner, "Confirm Yes OR NO (y/n): ");
-            if (!confirmed.equalsIgnoreCase("y")) {
+            if (!InputHandler.readConfirmed(scanner, "Confirm Yes OR NO (y/n): ")) {
                 console.showMessage("No changes made.");
                 return;
             }
