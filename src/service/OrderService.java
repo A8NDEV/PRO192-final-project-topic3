@@ -21,10 +21,7 @@ public class OrderService {
         this.orderRepository = orderRepository;
     }
 
-    /**
-     * Compatibility overload for existing code. Prefer the overload with items
-     * when creating a new order through the controller.
-     */
+ 
     public Order createOrder(String tableNumber, String customerName, String customerPhone) {
         ensureNoPendingOrderForTable(tableNumber);
         String today = LocalDate.now().format(DATE_FMT);
@@ -34,7 +31,7 @@ public class OrderService {
         return order;
     }
 
-    /** Creates and saves an order only after at least one valid item is collected. */
+
     public Order createOrder(String tableNumber, String customerName, String customerPhone,
                              List<OrderItem> items) {
         ensureNoPendingOrderForTable(tableNumber);
@@ -83,10 +80,7 @@ public class OrderService {
         persist();
     }
 
-    /**
-     * A positive quantity replaces the current quantity.
-     * A quantity of zero removes the item from the order.
-     */
+    
     public void updateQuantity(String orderId, String itemId, int newQuantity) {
         if (newQuantity < 0) {
             throw new BusinessException("Quantity cannot be negative. Enter 0 to remove the item.");
@@ -110,7 +104,6 @@ public class OrderService {
         persist();
     }
 
-    /** Retained as a reusable service operation; function 3 can remove via quantity 0. */
     public void removeItem(String orderId, String itemId) {
         Order order = requireOrder(orderId);
         requirePending(order);
@@ -247,7 +240,6 @@ public class OrderService {
         }
     }
 
-    // Function 6 retained for compatibility; sorting is outside this assignment's main scope.
     public List<Order> sortedByTotalDesc() {
         List<Order> sorted = orderRepository.findAll();
         sorted.sort((a, b) -> Double.compare(calculateTotal(b), calculateTotal(a)));

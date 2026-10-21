@@ -15,10 +15,7 @@ import utils.Validator;
 import view.ConsoleView;
 import view.OrderView;
 
-/**
- * Handles Order Management user interaction.
- * Search and sorting options (5 and 6) are retained for compatibility.
- */
+
 public class OrderController {
 
     private static final String[] ORDER_OPTIONS = {
@@ -92,8 +89,7 @@ public class OrderController {
         } while (choice != 0);
     }
 
-    // Function 1: gather valid items first so declining or adding no items
-    // does not create an empty/phantom order.
+    
     private void createOrder() {
         String table = readTable();
         Order existing = orderService.findOpenOrderByTable(table);
@@ -149,7 +145,6 @@ public class OrderController {
         draftItems.add(new OrderItem(item, quantity));
     }
 
-    // Function 2: adding an existing menu item increases its current quantity.
     private void addItem() {
         if (!showOpenOrders()) {
             return;
@@ -174,7 +169,6 @@ public class OrderController {
         }
     }
 
-    // Function 3: a positive quantity replaces the old quantity; 0 removes the item.
     private void changeQuantity() {
         if (!showOpenOrders()) {
             return;
@@ -203,7 +197,6 @@ public class OrderController {
         }
     }
 
-    // Function 4: change only the order status. Item removal is handled by function 3.
     private void manageOrderStatus() {
         if (!showOpenOrders()) {
             return;
@@ -254,10 +247,7 @@ public class OrderController {
         }
     }
 
-    /**
-     * Prompts for an Order ID. Only a missing/malformed ID counts as a bad attempt.
-     * Existing but non-pending orders receive a clear status message and are not editable.
-     */
+
     private Order readOrderById(boolean mustBePending) {
         int attempts = 0;
         while (true) {
