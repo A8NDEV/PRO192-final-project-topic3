@@ -19,14 +19,16 @@ import service.OrderService;
 public class Main {
     public static void main(String[] args) {
         String menuFilePath = "data/menu.txt";
+        String orderFilePath = "data/orders.txt";
 
         MenuRepository menuRepository = new MenuRepository(menuFilePath);
         MenuService menuService = new MenuService(menuRepository);
 
-        OrderRepository orderRepository = new OrderRepository("data/orders.txt", menuRepository);
+        OrderRepository orderRepository = new OrderRepository(orderFilePath, menuRepository);
         OrderService orderService = new OrderService(orderRepository);
 
         Scanner scanner = new Scanner(System.in);
+        
         MenuController menuController = new MenuController(menuService, scanner, orderService);
         OrderController orderController = new OrderController(orderService, menuService, scanner);
 
