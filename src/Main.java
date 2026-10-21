@@ -5,6 +5,7 @@
 
 import controller.AppController;
 import controller.MenuController;
+import controller.OrderController;
 import java.util.Scanner;
 import repository.MenuRepository;
 import repository.OrderRepository;
@@ -26,9 +27,10 @@ public class Main {
         OrderService orderService = new OrderService(orderRepository);
 
         Scanner scanner = new Scanner(System.in);
-        MenuController menuController = new MenuController(menuService, scanner);
+        MenuController menuController = new MenuController(menuService, scanner, orderService);
+        OrderController orderController = new OrderController(orderService, menuService, scanner);
 
-        AppController appController = new AppController(scanner, menuController, menuService, orderService);
+        AppController appController = new AppController(scanner, menuController, orderController);
         appController.run();
     }
 }

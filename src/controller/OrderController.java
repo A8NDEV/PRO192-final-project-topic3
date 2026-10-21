@@ -6,6 +6,7 @@ import java.util.Scanner;
 import java.util.function.Function;
 import models.MenuItem;
 import models.Order;
+import service.MenuService;
 import service.OrderService;
 import utils.InputHandler;
 import utils.Validator;
@@ -17,10 +18,10 @@ public class OrderController {
     private static final String[] ORDER_OPTIONS = {
         "Create new order for a table",
         "Add item to existing order",
-        "Sorted order by total (high to low)",
         "Change item quantity",
         "Remove item / Cancel order",
-        "Search order"
+        "Search order",
+        "Sorted order by total (high to low)"
     };
 
     private static final String[] REMOVE_OPTIONS = {
@@ -34,14 +35,14 @@ public class OrderController {
     };
 
     private final OrderService orderService;
-    private final List<MenuItem> menu;
+    private final MenuService menuService;
     private final Scanner scanner;
     private final ConsoleView console = new ConsoleView();
     private final OrderView orderView = new OrderView();
 
-    public OrderController(OrderService orderService, List<MenuItem> menu, Scanner scanner) {
+    public OrderController(OrderService orderService, MenuService menuService, Scanner scanner) {
         this.orderService = orderService;
-        this.menu = menu;
+        this.menuService = menuService;
         this.scanner = scanner;
     }
 
@@ -72,6 +73,8 @@ public class OrderController {
                     break;
                 case 5:
                     searchOrder();
+                    break;
+                case 6:
                     sortedOders();
                     break;
                 case 0:
@@ -309,12 +312,7 @@ public class OrderController {
     }
 
     private MenuItem findMenuItem(String itemId) {
-        for (MenuItem m : menu) {
-            if (m.getItemId().equalsIgnoreCase(itemId)) {
-                return m;
-            }
-        }
-        return null;
+        return menuService.findById(itemId);
     }
 
     private String readLine(String prompt) {
@@ -343,19 +341,16 @@ public class OrderController {
             console.showMessage(error);
         }
     }
-}
+
     private void sortedOders() {
         List<Order> sorted = orderService.sortedByTotalDesc();
-        if(sorted.isEmpty()) {
-            System.out.println("No orders available.");
+        if (sorted.isEmpty()) {
+            console.showMessage("No orders available.");
             return;
-        } System.out.println("\n Orders sorted by total (high to low)");
-        for(Order o : sorted) {
-             System.out.println("ID: " + o.getOrderId() 
-                                + "| Table: " + o.getTableNumber()
-                                + " | Total: " + orderService.calculateTotal(o));
         }
-
+        console.showMessage("\n----- Orders sorted by total (high to low) -----");
+        for (Order o : sorted) {
+            orderView.showOrderSummary(o, orderService.calculateTotal(o));
+        }
     }
-}
 }
