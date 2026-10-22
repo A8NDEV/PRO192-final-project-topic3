@@ -11,6 +11,10 @@ import java.util.List;
 import models.MenuItem;
 
 /**
+ *
+ * @author ASUS
+ */
+/**
  * Thao tác trực tiếp với dữ liệu menu: giữ danh sách món trong bộ nhớ và
  * đọc/ghi file menu.txt.
  */
@@ -69,5 +73,17 @@ public class MenuRepository {
             // Lỗi đọc file khác
         }
         return items;
+    }
+    
+    public boolean delete(String id){
+        if(id == null){
+            return false;
+        }
+        for(int i = 0; i < menuList.size(); i++){
+            if(menuList.get(i).getItemId().equalsIgnoreCase(id.trim())){
+                menuList.remove(i);
+            }
+        }
+        return false;
     }
 }

@@ -1,182 +1,479 @@
 package controller;
 
-import service.OrderService;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
-import java.time.format.ResolverStyle;
+import exception.BusinessException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.function.Function;
 import models.MenuItem;
 import models.Order;
+import models.OrderItem;
+import models.OrderStatus;
+import service.MenuService;
+import service.OrderService;
+import utils.Validator;
+import view.ConsoleView;
+import view.OrderView;
+
 
 public class OrderController {
-    private final OrderService manager;
-    private final List<MenuItem> menu;
-    private final Scanner sc;
 
-    // Tên: 1-50 ký tự, gồm chữ cái (có dấu), số, dấu cách đơn; phải có ít nhất 1 chữ cái
-    private static final String NAME_REGEX =
-            "^(?=.{1,50}$)(?=.*\\p{L})[\\p{L}\\p{M}\\p{N}]+(\\s[\\p{L}\\p{M}\\p{N}]+)*$";
-    // SĐT: đúng 10 chữ số, bắt đầu bằng 0
-    private static final String PHONE_REGEX = "^0\\d{9}$";
-    // Bàn: [VIP hoặc 1 chữ cái]? + số. Ví dụ: 2, A1, VIP12 (đã in hoa)
-    private static final String TABLE_REGEX = "^(VIP|[A-Z])?(\\d+)$";
-    // Ngày: bắt buộc đủ dd/MM/yyyy (năm 4 số)
-    private static final String DATE_REGEX = "^\\d{2}/\\d{2}/\\d{4}$";
-    private static final DateTimeFormatter DATE_FMT =
-            DateTimeFormatter.ofPattern("dd/MM/uuuu").withResolverStyle(ResolverStyle.STRICT);
+    private static final String[] ORDER_OPTIONS = {
+        "Create new order for a table",
+        "Add item to existing order",
+        "Change item quantity",
+        "Manage order status",
+        "Search order",
+        "Sorted order by total (high to low)"
+    };
 
-    // manager: dùng chung 1 đối tượng cho cả nhóm; menu: danh sách món từ phần Menu
-    public OrderController(OrderService manager, List<MenuItem> menu, Scanner sc) {
-        this.manager = manager;
-        this.menu = menu;
-        this.sc = sc;
+    private static final String[] STATUS_OPTIONS = {
+        "Mark as COMPLETED",
+        "Mark as CANCELLED"
+    };
+
+    private static final String[] SEARCH_OPTIONS = {
+        "Search by table",
+        "Search by order ID"
+    };
+
+    private static final int MAX_INVALID_ATTEMPTS = 3;
+
+    private final OrderService orderService;
+    private final MenuService menuService;
+    private final Scanner scanner;
+    private final ConsoleView console = new ConsoleView();
+    private final OrderView orderView = new OrderView();
+
+    public OrderController(OrderService orderService, MenuService menuService, Scanner scanner) {
+        this.orderService = orderService;
+        this.menuService = menuService;
+        this.scanner = scanner;
     }
 
     public void run() {
-        int choice;
+        int choice = -1;
         do {
-            System.out.println("\n===== ORDER =====");
-            System.out.println("1. Create new order for a table");
-            System.out.println("2. Add item to existing order");
-            System.out.println("3. Update item quantity");
-            System.out.println("0. Back");
-            choice = readInt("Choose: ");
+            console.showMenu("Order Management", ORDER_OPTIONS, "Back");
+            try {
+                choice = Integer.parseInt(scanner.nextLine().trim());
+            } catch (NumberFormatException e) {
+                console.showMessage("Please enter an integer menu option.");
+                continue;
+            }
+
             switch (choice) {
-                case 1: createOrder(); break;
-                case 2: addItem(); break;
-                case 3: updateQuantity(); break;
-                case 0: break;
-                default: System.out.println("Invalid choice.");
+                case 1:
+                    createOrder();
+                    break;
+                case 2:
+                    addItem();
+                    break;
+                case 3:
+                    changeQuantity();
+                    break;
+                case 4:
+                    manageOrderStatus();
+                    break;
+                case 5:
+                    searchOrder();
+                    break;
+                case 6:
+                    sortedOrders();
+                    break;
+                case 0:
+                    break;
+                default:
+                    console.showMessage("Invalid choice. Choose an option from the menu.");
             }
         } while (choice != 0);
     }
 
-    // 1. Tạo đơn mới cho một bàn, có thể thêm món ngay sau đó
+    
     private void createOrder() {
-        String date = readDate("Order date (dd/MM/yyyy): ");
-        String table = readTable("Table (e.g. 2, A1, VIP12): ");
-        String name = readValid("Customer name: ", NAME_REGEX,
-                "Name must be 1-50 characters, letters/numbers only, at least one letter. Example: anh Kien vip 123");
-        String phone = readValid("Customer phone (10 digits, starts with 0): ", PHONE_REGEX,
-                "Invalid phone. Must be 10 digits and start with 0. Example: 0901234567");
+        String table = readTable();
+        Order existing = orderService.findOpenOrderByTable(table);
+        if (existing != null) {
+            console.showError("Table " + table + " already has pending order "
+                    + existing.getOrderId() + ". Please add items to that order instead.");
+            return;
+        }
 
-        Order order = manager.createOrder(date, table, name, phone);
-        System.out.println("Created order " + order.getOrderId());
+        String name = readValid("Customer name: ", Validator::getCustomerNameError);
+        String phone = readValid("Customer phone (starts with 0 or 84): ", Validator::getPhoneError);
 
-        String more = readLine("Add items now? (y/n): ");
-        while (more.equalsIgnoreCase("y")) {
-            addItemTo(order.getOrderId());
-            more = readLine("Add another item? (y/n): ");
+        if (!readYesNo("Add food items to this new order now? (y/n): ")) {
+            console.showMessage("Order creation cancelled. No order was saved.");
+            return;
+        }
+
+        List<OrderItem> draftItems = new ArrayList<>();
+        boolean keepAdding = true;
+        while (keepAdding) {
+            MenuItem item = readAvailableMenuItem();
+            if (item == null) {
+                console.showMessage("Stopped adding items. No order was saved.");
+                return;
+            }
+
+            int quantity = readPositiveQuantity("Quantity: ");
+            addToDraft(draftItems, item, quantity);
+            keepAdding = readYesNo("Add another item? (y/n): ");
+        }
+
+        if (draftItems.isEmpty()) {
+            console.showMessage("No items were added. No order was saved.");
+            return;
+        }
+
+        try {
+            Order order = orderService.createOrder(table, name, phone, draftItems);
+            console.showMessage("Order " + order.getOrderId() + " created successfully on "
+                    + order.getOrderDate() + ".");
+        } catch (BusinessException e) {
+            console.showError(e.getMessage());
         }
     }
 
-    // 2. Thêm món vào đơn đã có
+    private void addToDraft(List<OrderItem> draftItems, MenuItem item, int quantity) {
+        for (OrderItem existing : draftItems) {
+            if (existing.getMenuItem().getItemId().equalsIgnoreCase(item.getItemId())) {
+                existing.setQuantity(existing.getQuantity() + quantity);
+                return;
+            }
+        }
+        draftItems.add(new OrderItem(item, quantity));
+    }
+
     private void addItem() {
-        String orderId = readLine("Order ID: ");
-        addItemTo(orderId);
-    }
+        if (!showOpenOrders()) {
+            return;
+        }
 
-    private void addItemTo(String orderId) {
-        String itemId = readLine("Menu item ID: ");
-        int qty = readInt("Quantity: ");
+        Order order = readOrderById(true);
+        if (order == null) {
+            return;
+        }
+
+        MenuItem item = readAvailableMenuItem();
+        if (item == null) {
+            return;
+        }
+
+        int quantity = readPositiveQuantity("Quantity to add: ");
         try {
-            manager.addItem(orderId, findMenuItem(itemId), qty);
-            System.out.println("Item added.");
-        } catch (IllegalArgumentException e) {
-            System.out.println("Error: " + e.getMessage());
+            orderService.addItem(order.getOrderId(), item, quantity);
+            console.showMessage("Item added to order " + order.getOrderId() + ".");
+        } catch (BusinessException e) {
+            console.showError(e.getMessage());
         }
     }
 
-    // 3. Sửa số lượng món trong đơn
-    private void updateQuantity() {
-        String orderId = readLine("Order ID: ");
-        String itemId = readLine("Menu item ID: ");
-        int qty = readInt("New quantity: ");
-        try {
-            manager.updateQuantity(orderId, itemId, qty);
-            System.out.println("Quantity updated.");
-        } catch (IllegalArgumentException e) {
-            System.out.println("Error: " + e.getMessage());
+    private void changeQuantity() {
+        if (!showOpenOrders()) {
+            return;
         }
-    }
 
-    private MenuItem findMenuItem(String itemId) {
-        for (MenuItem m : menu) {
-            if (m.getItemId().equalsIgnoreCase(itemId)) {
-                return m;
+        Order order = readOrderById(true);
+        if (order == null) {
+            return;
+        }
+
+        String itemId = readItemIdInOrder(order);
+        if (itemId == null) {
+            return;
+        }
+
+        int quantity = readNonNegativeQuantity("New quantity (0 removes the item): ");
+        try {
+            orderService.updateQuantity(order.getOrderId(), itemId, quantity);
+            if (quantity == 0) {
+                console.showMessage("Item removed from order " + order.getOrderId() + ".");
+            } else {
+                console.showMessage("Item quantity updated to " + quantity + ".");
             }
+        } catch (BusinessException e) {
+            console.showError(e.getMessage());
         }
-        return null;
     }
 
-    private String readLine(String prompt) {
-        System.out.print(prompt);
-        return sc.nextLine().trim();
+    private void manageOrderStatus() {
+        if (!showOpenOrders()) {
+            return;
+        }
+
+        Order order = readOrderById(true);
+        if (order == null) {
+            return;
+        }
+
+        console.showMenu("Manage Order Status", STATUS_OPTIONS, "Back");
+        int choice = readMenuChoice();
+        if (choice == 0) {
+            console.showMessage("No changes made.");
+            return;
+        }
+
+        OrderStatus newStatus;
+        if (choice == 1) {
+            newStatus = OrderStatus.COMPLETED;
+        } else if (choice == 2) {
+            newStatus = OrderStatus.CANCELLED;
+        } else {
+            console.showMessage("Invalid option. No changes made.");
+            return;
+        }
+
+        if (!readYesNo("Change order " + order.getOrderId() + " to "
+                + newStatus + "? (y/n): ")) {
+            console.showMessage("No changes made.");
+            return;
+        }
+
+        try {
+            orderService.changeStatus(order.getOrderId(), newStatus);
+            console.showMessage("Order " + order.getOrderId() + " status changed to " + newStatus + ".");
+        } catch (BusinessException e) {
+            console.showError(e.getMessage());
+        }
     }
 
-    // Hỏi lại đến khi nhập đúng định dạng
-    private String readValid(String prompt, String regex, String error) {
+    private int readMenuChoice() {
+        try {
+            return Integer.parseInt(scanner.nextLine().trim());
+        } catch (NumberFormatException e) {
+            console.showMessage("Please enter an integer menu option.");
+            return -1;
+        }
+    }
+
+
+    private Order readOrderById(boolean mustBePending) {
+        int attempts = 0;
         while (true) {
-            String s = readLine(prompt);
-            if (s.matches(regex)) {
-                return s;
+            String id = readLine("Order ID: ");
+            Order order = orderService.findById(id);
+
+            if (order == null) {
+                attempts++;
+                console.showError("Order ID '" + id + "' does not exist. Please check the ID and try again.");
+                if (!handleInvalidAttempt(attempts, "Order ID")) {
+                    return null;
+                }
+                if (attempts >= MAX_INVALID_ATTEMPTS) {
+                    attempts = 0;
+                }
+                continue;
             }
-            System.out.println(error);
+
+            if (mustBePending && order.getStatus() != OrderStatus.PENDING) {
+                console.showError("Order " + order.getOrderId() + " is " + order.getStatus()
+                        + " and cannot be modified. Only PENDING orders can be changed.");
+                return null;
+            }
+            return order;
         }
     }
 
-    // Bàn: tự in hoa, bỏ số 0 đứng đầu phần số, tối đa 5 ký tự (đếm sau khi sửa)
-    private String readTable(String prompt) {
+    private String readItemIdInOrder(Order order) {
+        int attempts = 0;
+        while (true) {
+            String id = readLine("Menu item ID in this order: ");
+            boolean belongs = false;
+            for (OrderItem item : order.getItemsList()) {
+                if (item.getMenuItem().getItemId().equalsIgnoreCase(id)) {
+                    belongs = true;
+                    break;
+                }
+            }
+
+            if (belongs) {
+                return id;
+            }
+
+            attempts++;
+            console.showError("Menu item ID '" + id + "' is not in order "
+                    + order.getOrderId() + ". Enter an item ID shown in this order.");
+            if (!handleInvalidAttempt(attempts, "Menu item ID")) {
+                return null;
+            }
+            if (attempts >= MAX_INVALID_ATTEMPTS) {
+                attempts = 0;
+            }
+        }
+    }
+
+    private MenuItem readAvailableMenuItem() {
+        int attempts = 0;
+        while (true) {
+            String itemId = readLine("Menu item ID: ");
+            MenuItem item = menuService.findById(itemId);
+
+            if (item == null) {
+                attempts++;
+                console.showError("Menu item ID '" + itemId + "' does not exist. Please check the ID.");
+            } else if (!item.isStatus()) {
+                attempts++;
+                console.showError("Menu item '" + itemId + "' is currently unavailable. Choose an available item.");
+            } else {
+                return item;
+            }
+
+            if (!handleInvalidAttempt(attempts, "Menu item ID")) {
+                return null;
+            }
+            if (attempts >= MAX_INVALID_ATTEMPTS) {
+                attempts = 0;
+            }
+        }
+    }
+
+    private boolean handleInvalidAttempt(int attempts, String idType) {
+        if (attempts < MAX_INVALID_ATTEMPTS) {
+            console.showMessage("Attempts remaining: " + (MAX_INVALID_ATTEMPTS - attempts) + ".");
+            return true;
+        }
+
+        console.showMessage("You have entered an invalid " + idType + " 3 times.");
+        return readYesNo("Do you want to continue trying? (y/n): ");
+    }
+
+    private int readPositiveQuantity(String prompt) {
         while (true) {
             String raw = readLine(prompt);
-            Matcher m = Pattern.compile(TABLE_REGEX).matcher(raw.toUpperCase());
-            if (!m.matches()) {
-                System.out.println("Invalid table. Use number, 1 letter + number, or VIP + number. Examples: 2, A1, VIP12");
-                continue;
+            try {
+                int quantity = Integer.parseInt(raw);
+                if (quantity > 0) {
+                    return quantity;
+                }
+                console.showError("Quantity must be a positive integer greater than 0.");
+            } catch (NumberFormatException e) {
+                console.showError("Quantity must be a whole number, for example 1, 2, or 3.");
             }
-            String prefix = m.group(1) == null ? "" : m.group(1);
-            String digits = m.group(2).replaceFirst("^0+", "");
-            if (digits.isEmpty()) {
-                System.out.println("Table number cannot be 0.");
-                continue;
+        }
+    }
+
+    private int readNonNegativeQuantity(String prompt) {
+        while (true) {
+            String raw = readLine(prompt);
+            try {
+                int quantity = Integer.parseInt(raw);
+                if (quantity >= 0) {
+                    return quantity;
+                }
+                console.showError("Quantity cannot be negative. Enter 0 to remove the item or a positive integer.");
+            } catch (NumberFormatException e) {
+                console.showError("Quantity must be a whole number, for example 0, 1, 2, or 3.");
             }
-            String table = prefix + digits;
-            if (table.length() > 5) {
-                System.out.println("Table is too long (max 5 characters). Example: VIP12, A1234");
+        }
+    }
+
+    private void searchOrder() {
+        int choice = -1;
+        do {
+            console.showMenu("Search Order", SEARCH_OPTIONS, "Back");
+            choice = readMenuChoice();
+            switch (choice) {
+                case 1:
+                    searchByTable();
+                    break;
+                case 2:
+                    searchByOrderId();
+                    break;
+                case 0:
+                    break;
+                default:
+                    console.showMessage("Invalid option. Choose 0, 1, or 2.");
+            }
+        } while (choice != 0);
+    }
+
+    private void searchByTable() {
+        String table = readTable();
+        List<Order> found = orderService.searchByTable(table);
+        if (found.isEmpty()) {
+            console.showMessage("No orders found for table " + table + ".");
+            return;
+        }
+        console.showMessage("\n----- Orders of table " + table + " -----");
+        for (Order order : found) {
+            orderView.showOrderSummary(order, orderService.calculateTotal(order));
+        }
+    }
+
+    private void searchByOrderId() {
+        Order order = readOrderById(false);
+        if (order != null) {
+            orderView.showOrderSummary(order, orderService.calculateTotal(order));
+        }
+    }
+
+    private boolean showOpenOrders() {
+        List<Order> openOrders = orderService.getOpenOrders();
+        if (openOrders.isEmpty()) {
+            console.showMessage("No PENDING orders are available.");
+            return false;
+        }
+        console.showMessage("\n----- Pending orders -----");
+        for (Order order : openOrders) {
+            orderView.showOrderSummary(order, orderService.calculateTotal(order));
+        }
+        return true;
+    }
+
+    private boolean readYesNo(String prompt) {
+        while (true) {
+            String answer = readLine(prompt);
+            if (answer.equalsIgnoreCase("y")) {
+                return true;
+            }
+            if (answer.equalsIgnoreCase("n")) {
+                return false;
+            }
+            console.showMessage("Please enter Y or N.");
+        }
+    }
+
+    private String readTable() {
+        while (true) {
+            String raw = readLine("Table: ");
+            String table = Validator.normalizeTable(raw);
+            if (table == null) {
+                console.showError("Invalid table. Use one letter followed by a number, for example A1 or B12.");
                 continue;
             }
             if (!table.equals(raw)) {
-                System.out.println("Table set to " + table);
+                console.showMessage("Table set to " + table + ".");
             }
             return table;
         }
     }
 
-    // Ngày phải đủ dd/MM/yyyy và là ngày có thật (không nhận 31/02/2026)
-    private String readDate(String prompt) {
+    private String readLine(String prompt) {
+        System.out.print(prompt);
+        return scanner.nextLine().trim();
+    }
+
+    private String readValid(String prompt, Function<String, String> errorChecker) {
         while (true) {
-            String s = readValid(prompt, DATE_REGEX,
-                    "Date must be full dd/MM/yyyy. Example: 26/10/2026");
-            try {
-                LocalDate.parse(s, DATE_FMT);
-                return s;
-            } catch (DateTimeParseException e) {
-                System.out.println("That date does not exist. Example: 26/10/2026");
+            String value = readLine(prompt);
+            String error = errorChecker.apply(value);
+            if (error == null) {
+                return value;
             }
+            console.showError(error);
         }
     }
 
-    private int readInt(String prompt) {
-        while (true) {
-            try {
-                return Integer.parseInt(readLine(prompt));
-            } catch (NumberFormatException e) {
-                System.out.println("Please enter a number.");
-            }
+    private void sortedOrders() {
+        List<Order> sorted = orderService.sortedByTotalDesc();
+        if (sorted.isEmpty()) {
+            console.showMessage("No orders available.");
+            return;
+        }
+        console.showMessage("\n----- Orders sorted by total (high to low) -----");
+        for (Order order : sorted) {
+            orderView.showOrderSummary(order, orderService.calculateTotal(order));
         }
     }
 }

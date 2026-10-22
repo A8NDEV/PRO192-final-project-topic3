@@ -3,7 +3,12 @@ package view;
 import models.MenuItem;
 
 /**
- * Hiển thị phần Menu ra console. Chỉ in, không đọc input và không xử lý logic.
+ *
+ * @author ASUS
+ */
+/**
+ * Hiển thị riêng cho món trong menu. Chỉ in, không đọc input và không xử lý
+ * logic.
  */
 public class MenuView {
 
@@ -12,6 +17,7 @@ public class MenuView {
         System.out.println("1. Add new Item");
         System.out.println("2. Search Item");
         System.out.println("3. Order management");
+        System.out.println("4. Display available items");
         System.out.println("0. Exit");
         System.out.print("Choose: ");
     }
@@ -61,4 +67,17 @@ public class MenuView {
     public void showNoItemsFound() {
         System.out.println("Item not found");
     }
+
+    public void showAvailableHeader() {
+        System.out.println("\n===== Available Menu Items =====");
+    }
+
+    public void showMenuEmpty() {
+        System.out.println("Menu is empty.");
+    }
+
+    public void showNoAvailableItems() {
+        System.out.println("No items are currently available.");
+    }
+
 }
