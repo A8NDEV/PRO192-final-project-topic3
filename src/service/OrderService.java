@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import models.MenuItem;
 import models.Order;
@@ -162,16 +163,17 @@ public class OrderService {
         return orderRepository.findById(orderId);
     }
 
-    public List<Order> searchByTable(String tableNumber) {
-        List<Order> result = new ArrayList<>();
-        if (tableNumber == null) {
-            return result;
+    public List<Order> searchByTable(String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return Collections.emptyList();
         }
-        String key = tableNumber.trim();
+        String lowerKey = keyword.trim().toLowerCase();
+        List<Order> result = new ArrayList<>();
         for (Order order : orderRepository.findAll()) {
-            if (order.getTableNumber() != null
-                    && order.getTableNumber().equalsIgnoreCase(key)) {
-                result.add(order);
+            if (order != null && order.getTableNumber() != null) {
+                if (order.getTableNumber().toLowerCase().contains(lowerKey)) {
+                    result.add(order);
+                }
             }
         }
         return result;

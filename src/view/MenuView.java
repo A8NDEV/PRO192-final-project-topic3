@@ -72,12 +72,4 @@ public class MenuView {
         System.out.println("\n===== Available Menu Items =====");
     }
 
-    public void showMenuEmpty() {
-        System.out.println("Menu is empty.");
-    }
-
-    public void showNoAvailableItems() {
-        System.out.println("No items are currently available.");
-    }
-
 }
