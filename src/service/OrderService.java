@@ -12,7 +12,6 @@ import models.OrderItem;
 import models.OrderStatus;
 import repository.OrderRepository;
 
-
 public class OrderService {
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -22,8 +21,9 @@ public class OrderService {
         this.orderRepository = orderRepository;
     }
 
-    // Date tự cập nhật theo ngày hiện tại
+ 
     public Order createOrder(String tableNumber, String customerName, String customerPhone) {
+        ensureNoPendingOrderForTable(tableNumber);
         String today = LocalDate.now().format(DATE_FMT);
         Order order = new Order(orderRepository.nextId(), today, tableNumber, customerName, customerPhone);
         orderRepository.add(order);
@@ -31,18 +31,46 @@ public class OrderService {
         return order;
     }
 
+
+    public Order createOrder(String tableNumber, String customerName, String customerPhone,
+                             List<OrderItem> items) {
+        ensureNoPendingOrderForTable(tableNumber);
+        if (items == null || items.isEmpty()) {
+            throw new BusinessException("Cannot create an order without any items.");
+        }
+
+        String today = LocalDate.now().format(DATE_FMT);
+        Order order = new Order(orderRepository.nextId(), today, tableNumber, customerName, customerPhone);
+        for (OrderItem item : items) {
+            if (item == null || item.getMenuItem() == null || item.getQuantity() <= 0) {
+                throw new BusinessException("Every order item must have a valid menu item and a positive quantity.");
+            }
+            if (!item.getMenuItem().isStatus()) {
+                throw new BusinessException("Item " + item.getMenuItem().getItemId()
+                        + " is currently unavailable.");
+            }
+            order.getItemsList().add(new OrderItem(item.getMenuItem(), item.getQuantity()));
+        }
+
+        orderRepository.add(order);
+        persist();
+        return order;
+    }
+
     public void addItem(String orderId, MenuItem menuItem, int quantity) {
         if (menuItem == null) {
-            throw new BusinessException("Menu item not found.");
+            throw new BusinessException("Menu item does not exist. Please check the menu item ID.");
         }
         if (!menuItem.isStatus()) {
             throw new BusinessException("Item " + menuItem.getItemId() + " is currently unavailable.");
         }
         if (quantity <= 0) {
-            throw new BusinessException("Quantity must be greater than 0.");
+            throw new BusinessException("Quantity to add must be a positive integer greater than 0.");
         }
+
         Order order = requireOrder(orderId);
-        requireEditable(order);
+        requirePending(order);
+
         OrderItem existing = findItem(order, menuItem.getItemId());
         if (existing != null) {
             existing.setQuantity(existing.getQuantity() + quantity);
@@ -52,58 +80,88 @@ public class OrderService {
         persist();
     }
 
+    
     public void updateQuantity(String orderId, String itemId, int newQuantity) {
-        if (newQuantity <= 0) {
-            throw new BusinessException("Quantity must be greater than 0.");
+        if (newQuantity < 0) {
+            throw new BusinessException("Quantity cannot be negative. Enter 0 to remove the item.");
         }
+
         Order order = requireOrder(orderId);
-        requireEditable(order);
-        OrderItem oi = findItem(order, itemId);
-        if (oi == null) {
-            throw new BusinessException("Item " + itemId + " is not in order " + orderId + ".");
+        requirePending(order);
+
+        OrderItem item = findItem(order, itemId);
+        if (item == null) {
+            throw new BusinessException("Menu item " + itemId + " is not in order " + orderId + ".");
         }
-        oi.setQuantity(newQuantity);
+
+        if (newQuantity == 0) {
+            order.getItemsList().remove(item);
+            persist();
+            return;
+        }
+
+        item.setQuantity(newQuantity);
         persist();
     }
 
-    // delete món theo ý muốn 
     public void removeItem(String orderId, String itemId) {
         Order order = requireOrder(orderId);
-        requireEditable(order);
-        OrderItem oi = findItem(order, itemId);
-        if (oi == null) {
-            throw new BusinessException("Item " + itemId + " is not in order " + orderId + ".");
+        requirePending(order);
+
+        OrderItem item = findItem(order, itemId);
+        if (item == null) {
+            throw new BusinessException("Menu item " + itemId + " is not in order " + orderId + ".");
         }
-        order.getItemsList().remove(oi);
+
+        order.getItemsList().remove(item);
         persist();
     }
 
-    // Đóng đơn: đổi trạng thái sang CANCELLED
-    public void cancelOrder(String orderId) {
+    public void changeStatus(String orderId, OrderStatus newStatus) {
+        if (newStatus != OrderStatus.COMPLETED && newStatus != OrderStatus.CANCELLED) {
+            throw new BusinessException("Order status can only be changed to COMPLETED or CANCELLED.");
+        }
+
         Order order = requireOrder(orderId);
-        if (order.getStatus() == OrderStatus.CANCELLED) {
-            throw new BusinessException("Order " + orderId + " is already cancelled.");
-        }
-        order.setStatus(OrderStatus.CANCELLED);
+        requirePending(order);
+        order.setStatus(newStatus);
         persist();
     }
 
-    // hiển thị các đơn hàng đang mở
+    /** Backward-compatible cancellation method. */
+    public void cancelOrder(String orderId) {
+        changeStatus(orderId, OrderStatus.CANCELLED);
+    }
+
     public List<Order> getOpenOrders() {
-        List<Order> open = new ArrayList<>();
+        List<Order> pending = new ArrayList<>();
         for (Order order : orderRepository.findAll()) {
             if (order.getStatus() == OrderStatus.PENDING) {
-                open.add(order);
+                pending.add(order);
             }
         }
-        return open;
+        return pending;
+    }
+
+    public Order findOpenOrderByTable(String tableNumber) {
+        if (tableNumber == null) {
+            return null;
+        }
+        String table = tableNumber.trim();
+        for (Order order : orderRepository.findAll()) {
+            if (order.getStatus() == OrderStatus.PENDING
+                    && order.getTableNumber() != null
+                    && order.getTableNumber().equalsIgnoreCase(table)) {
+                return order;
+            }
+        }
+        return null;
     }
 
     public Order findById(String orderId) {
         return orderRepository.findById(orderId);
     }
 
-    // Một bàn có thể có nhiều đơn nên trả về danh sách
     public List<Order> searchByTable(String tableNumber) {
         List<Order> result = new ArrayList<>();
         if (tableNumber == null) {
@@ -111,25 +169,19 @@ public class OrderService {
         }
         String key = tableNumber.trim();
         for (Order order : orderRepository.findAll()) {
-            if (order.getTableNumber() != null && order.getTableNumber().equalsIgnoreCase(key)) {
+            if (order.getTableNumber() != null
+                    && order.getTableNumber().equalsIgnoreCase(key)) {
                 result.add(order);
             }
         }
         return result;
     }
 
-    // Mã đơn là duy nhất nên trả về 1 đơn, hoặc null nếu không thấy
     public Order searchByOrderId(String orderId) {
         if (orderId == null) {
             return null;
         }
-        String key = orderId.trim();
-        for (Order order : orderRepository.findAll()) {
-            if (order.getOrderId().equalsIgnoreCase(key)) {
-                return order;
-            }
-        }
-        return null;
+        return orderRepository.findById(orderId.trim());
     }
 
     public void save() throws IOException {
@@ -137,11 +189,11 @@ public class OrderService {
     }
 
     public double calculateTotal(Order order) {
-        double sum = 0;
-        for (OrderItem oi : order.getItemsList()) {
-            sum += oi.getMenuItem().getPrice() * oi.getQuantity();
+        double total = 0;
+        for (OrderItem item : order.getItemsList()) {
+            total += item.getMenuItem().getPrice() * item.getQuantity();
         }
-        return sum;
+        return total;
     }
 
     public List<Order> getAllOrders() {
@@ -149,9 +201,9 @@ public class OrderService {
     }
 
     private OrderItem findItem(Order order, String itemId) {
-        for (OrderItem oi : order.getItemsList()) {
-            if (oi.getMenuItem().getItemId().equalsIgnoreCase(itemId)) {
-                return oi;
+        for (OrderItem item : order.getItemsList()) {
+            if (item.getMenuItem().getItemId().equalsIgnoreCase(itemId)) {
+                return item;
             }
         }
         return null;
@@ -160,15 +212,23 @@ public class OrderService {
     private Order requireOrder(String orderId) {
         Order order = orderRepository.findById(orderId);
         if (order == null) {
-            throw new BusinessException("Order " + orderId + " not found.");
+            throw new BusinessException("Order ID '" + orderId + "' does not exist. Please check the ID and try again.");
         }
         return order;
     }
 
-    // Đơn đã hủy chỉ có thể xem
-    private void requireEditable(Order order) {
-        if (order.getStatus() == OrderStatus.CANCELLED) {
-            throw new BusinessException("Order " + order.getOrderId() + " is cancelled and cannot be modified.");
+    private void requirePending(Order order) {
+        if (order.getStatus() != OrderStatus.PENDING) {
+            throw new BusinessException("Order " + order.getOrderId() + " is "
+                    + order.getStatus() + " and cannot be modified. Only PENDING orders can be changed.");
+        }
+    }
+
+    private void ensureNoPendingOrderForTable(String tableNumber) {
+        Order existing = findOpenOrderByTable(tableNumber);
+        if (existing != null) {
+            throw new BusinessException("Table " + tableNumber + " already has pending order "
+                    + existing.getOrderId() + ". Add items to that order instead.");
         }
     }
 
@@ -179,12 +239,10 @@ public class OrderService {
             throw new BusinessException("Cannot save orders: " + e.getMessage());
         }
     }
-    //sap xep don theo tong tien giam dan
-public List<Order> sortedByTotalDesc() {
-    List<Order> sortedList = orderRepository.findAll();
-    sortedList.sort((a, b) -> Double.compare(calculateTotal(b), calculateTotal(a)));
-    return sortedList;
-}
-}
 
-
+    public List<Order> sortedByTotalDesc() {
+        List<Order> sorted = orderRepository.findAll();
+        sorted.sort((a, b) -> Double.compare(calculateTotal(b), calculateTotal(a)));
+        return sorted;
+    }
+}
