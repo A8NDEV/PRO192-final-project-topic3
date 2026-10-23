@@ -30,7 +30,6 @@ public class MenuDispatcher {
 
     private MenuService menuService;
     private ConsoleView console = new ConsoleView();
-    private MenuView menuView = new MenuView();
     private Scanner scanner;
     private OrderService orderService;
 
@@ -111,7 +110,7 @@ public class MenuDispatcher {
                 String id = InputHandler.readNonBlank(scanner, "Enter Item ID to search: ");
                 MenuItem item = menuService.findById(id);
                 if (item != null) {
-                    menuView.showItem(item);
+                    console.showItem(item);
                 } else {
                     console.showMessage("Item not found.");
                 }
@@ -123,7 +122,7 @@ public class MenuDispatcher {
                     console.showMessage("Item not found");
                 } else {
                     for (MenuItem i : list) {
-                        menuView.showItem(i);
+                        console.showItem(i);
                     }
                 }
                 break;
@@ -168,9 +167,9 @@ public class MenuDispatcher {
             console.showMessage("No items are currently available.");
             return;
         }
-        menuView.showAvailableHeader();
+        console.showAvailableHeader();
         for (MenuItem item : available) {
-            menuView.showItem(item);
+            console.showItem(item);
         }
     }
 
@@ -186,7 +185,7 @@ public class MenuDispatcher {
         }
         console.showMessage("\n----- Items with no orders -----");
         for (MenuItem item : items) {
-            menuView.showItem(item);
+            console.showItem(item);
         }
     }
 }

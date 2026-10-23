@@ -42,7 +42,6 @@ public class OrderDispatcher {
     private final MenuService menuService;
     private final Scanner scanner;
     private final ConsoleView console = new ConsoleView();
-    private final OrderView orderView = new OrderView();
 
     public OrderDispatcher(OrderService orderService, MenuService menuService, Scanner scanner) {
         this.orderService = orderService;
@@ -396,14 +395,14 @@ public class OrderDispatcher {
         }
         console.showMessage("\n----- Orders of table " + keyword + " -----");
         for (Order order : found) {
-            orderView.showOrderSummary(order, orderService.calculateTotal(order));
+            console.showOrderSummary(order, orderService.calculateTotal(order));
         }
     }
 
     private void searchByOrderId() {
         Order order = readOrderById(false);
         if (order != null) {
-            orderView.showOrderSummary(order, orderService.calculateTotal(order));
+            console.showOrderSummary(order, orderService.calculateTotal(order));
         }
     }
 
@@ -415,7 +414,7 @@ public class OrderDispatcher {
         }
         console.showMessage("\n----- Pending orders -----");
         for (Order order : openOrders) {
-            orderView.showOrderSummary(order, orderService.calculateTotal(order));
+            console.showOrderSummary(order, orderService.calculateTotal(order));
         }
         return true;
     }
@@ -472,7 +471,7 @@ public class OrderDispatcher {
         }
         console.showMessage("\n----- Orders sorted by total (high to low) -----");
         for (Order order : sorted) {
-            orderView.showOrderSummary(order, orderService.calculateTotal(order));
+            console.showOrderSummary(order, orderService.calculateTotal(order));
         }
     }
 }

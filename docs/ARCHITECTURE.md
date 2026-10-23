@@ -8,7 +8,7 @@ Dự án được tổ chức theo chuẩn kiến trúc 4 packages bắt buộc:
 |---|---|---|---|
 | `models` | `MenuItem`, `Order`, `OrderItem`, `OrderStatus` | Thuộc tính, constructor, getter/setter, hàm gắn với dữ liệu của chính nó | Dùng `Scanner`, `System.out`, gọi class ở package khác |
 | `business` | `MenuService`, `OrderService`, `MenuRepository`, `OrderRepository`, `BusinessException`, `DuplicateItemException`, `ItemNotFoundException` | Xử lý logic nghiệp vụ, quản lý danh sách, đọc/ghi file `data/*.txt`, ném các exception nghiệp vụ | Dùng `Scanner`, gọi trực tiếp `dispatcher` hay `view` |
-| `dispatcher` | `AppDispatcher`, `MenuDispatcher`, `OrderDispatcher`, `ConsoleView`, `MenuView`, `OrderView` | Điều phối tương tác: in menu, nhận lựa chọn người dùng, đọc input qua `utils`, gọi `business`, bắt exception, hiển thị ra console | Tự xử lý logic tính toán nghiệp vụ hay đọc/ghi file trực tiếp |
+| `dispatcher` | `AppDispatcher`, `MenuDispatcher`, `OrderDispatcher`, `ConsoleView` | Điều phối tương tác: in menu, nhận lựa chọn người dùng, đọc input qua `utils`, gọi `business`, bắt exception, hiển thị ra console | Tự xử lý logic tính toán nghiệp vụ hay đọc/ghi file trực tiếp |
 | `utils` | `Validator`, `InputHandler` | Hàm tiện ích dùng chung cho cả dự án (kiểm tra hợp lệ dữ liệu, đọc input từ `Scanner`) | Chứa nghiệp vụ riêng của một chức năng |
 
 ## 2. Quy tắc gọi nhau
