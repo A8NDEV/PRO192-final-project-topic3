@@ -82,6 +82,7 @@ public class MenuRepository {
         for(int i = 0; i < menuList.size(); i++){
             if(menuList.get(i).getItemId().equalsIgnoreCase(id.trim())){
                 menuList.remove(i);
+                return true;
             }
         }
         return false;
