@@ -1,4 +1,4 @@
-package repository;
+package business;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;

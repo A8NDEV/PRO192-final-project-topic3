@@ -2,24 +2,22 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package controller;
+package dispatcher;
 
-import exception.BusinessException;
+import business.BusinessException;
+import business.MenuService;
+import business.OrderService;
 import java.io.IOException;
 import java.util.List;
 import java.util.Scanner;
 import models.MenuItem;
-import service.MenuService;
 import utils.InputHandler;
-import view.ConsoleView;
-import view.MenuView;
-import service.OrderService;
 
 /**
  *
  * @author ASUS
  */
-public class MenuController {
+public class MenuDispatcher {
 
     private static final String[] MENU_OPTIONS = {
         "Add new Item",
@@ -36,7 +34,7 @@ public class MenuController {
     private Scanner scanner;
     private OrderService orderService;
 
-    public MenuController(MenuService menuService, Scanner scanner, OrderService orderService) {
+    public MenuDispatcher(MenuService menuService, Scanner scanner, OrderService orderService) {
         this.menuService = menuService;
         this.scanner = scanner;
         this.orderService = orderService;
@@ -48,7 +46,7 @@ public class MenuController {
             console.showMenu("Menu Management", MENU_OPTIONS, "Back");
 
             try {
-                choice = Integer.parseInt(scanner.nextLine());
+                choice = Integer.parseInt(scanner.nextLine().trim());
             } catch (NumberFormatException e) {
                 console.showMessage("Value must be an integer.");
                 continue;

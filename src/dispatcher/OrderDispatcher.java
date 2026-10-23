@@ -1,6 +1,8 @@
-package controller;
+package dispatcher;
 
-import exception.BusinessException;
+import business.BusinessException;
+import business.MenuService;
+import business.OrderService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -9,15 +11,11 @@ import models.MenuItem;
 import models.Order;
 import models.OrderItem;
 import models.OrderStatus;
-import service.MenuService;
-import service.OrderService;
 import utils.InputHandler;
 import utils.Validator;
-import view.ConsoleView;
-import view.OrderView;
 
 
-public class OrderController {
+public class OrderDispatcher {
 
     private static final String[] ORDER_OPTIONS = {
         "Create new order for a table",
@@ -46,7 +44,7 @@ public class OrderController {
     private final ConsoleView console = new ConsoleView();
     private final OrderView orderView = new OrderView();
 
-    public OrderController(OrderService orderService, MenuService menuService, Scanner scanner) {
+    public OrderDispatcher(OrderService orderService, MenuService menuService, Scanner scanner) {
         this.orderService = orderService;
         this.menuService = menuService;
         this.scanner = scanner;
