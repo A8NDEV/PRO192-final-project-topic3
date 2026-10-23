@@ -73,17 +73,14 @@ Each `Order` contains:
 
 ## 🏗️ Project Architecture & Package Structure
 
-The project follows a multi-layer structure (Model – View – Controller – Service – Repository):
+The project follows a 4-package standard architecture (`models`, `business`, `dispatcher`, `utils`):
 
 | Package | Responsibility |
 |---|---|
 | `models` | Entity classes (`MenuItem`, `Order`, `OrderItem`, `OrderStatus`) |
-| `view` | Display only: `ConsoleView` has the shared print functions (message, error, menu), the message text is passed in by the caller |
-| `controller` | Receives user requests, validates input via `utils`, calls services and views |
-| `service` | Business logic; calls repositories when it needs to access data |
-| `repository` | Reads/writes data directly (in-memory list + `.txt` files) |
-| `exception` | Custom exception for each error case (`BusinessException` is the unchecked base class) |
-| `utils` | Shared helpers (`Validator`, `InputHandler`) |
+| `business` | Business logic, data repositories (`MenuRepository`, `OrderRepository`), and custom exceptions (`BusinessException`, `DuplicateItemException`, `ItemNotFoundException`) |
+| `dispatcher` | Presentation and menu navigation layer (`AppDispatcher`, `MenuDispatcher`, `OrderDispatcher`) and unified console display (`ConsoleView`) |
+| `utils` | Shared helper utilities (`Validator`, `InputHandler`) |
 
 ```text
 TableOrderingSystem/
@@ -94,25 +91,20 @@ TableOrderingSystem/
 │   │   ├── OrderItem.java
 │   │   └── OrderStatus.java
 │   │
-│   ├── view/
-│   │   ├── ConsoleView.java
-│   │   └── MenuView.java
-│   │
-│   ├── controller/
-│   │   ├── AppController.java
-│   │   ├── MenuController.java
-│   │   └── OrderController.java
-│   │
-│   ├── service/
+│   ├── business/
+│   │   ├── BusinessException.java
+│   │   ├── DuplicateItemException.java
+│   │   ├── ItemNotFoundException.java
+│   │   ├── MenuRepository.java
 │   │   ├── MenuService.java
+│   │   ├── OrderRepository.java
 │   │   └── OrderService.java
 │   │
-│   ├── repository/
-│   │   └── MenuRepository.java
-│   │
-│   ├── exception/
-│   │   ├── BusinessException.java
-│   │   └── DuplicateItemException.java
+│   ├── dispatcher/
+│   │   ├── AppDispatcher.java
+│   │   ├── ConsoleView.java
+│   │   ├── MenuDispatcher.java
+│   │   └── OrderDispatcher.java
 │   │
 │   ├── utils/
 │   │   ├── InputHandler.java
@@ -132,14 +124,6 @@ TableOrderingSystem/
 └── README.md
 ```
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the rules about which layer may call which.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed architecture rules, layers, and error handling.
 
-The console flow is: **Main Menu** (`AppController`) → **Menu management**
-(`MenuController`) or **Order management** (`OrderController`).
-
-> **Status:** the Menu feature is fully split into the layers above. The Order
-> feature has been moved into the new packages but is not split yet:
-> `OrderController` still contains the display and validation code,
-> `OrderService` still keeps the order list in memory, and there is no
-> `OrderRepository`, `OrderView` or per-case exceptions for Order yet.
-> `data/orders.txt` is not read or written yet.
+The console flow is: **Main Menu** (`AppDispatcher`) → **Menu management** (`MenuDispatcher`) or **Order management** (`OrderDispatcher`).
