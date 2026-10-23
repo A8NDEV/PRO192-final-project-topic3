@@ -162,12 +162,12 @@ public class MenuController {
 
     private void displayAvailable() {
         if (menuService.getMenuList().isEmpty()) {
-            menuView.showMenuEmpty();
+            console.showMessage("No items available.");
             return;
         }
         List<MenuItem> available = menuService.getAvailableItems();
         if (available.isEmpty()) {
-            menuView.showNoAvailableItems();
+            console.showMessage("No items are currently available.");
             return;
         }
         menuView.showAvailableHeader();

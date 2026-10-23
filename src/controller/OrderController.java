@@ -11,6 +11,7 @@ import models.OrderItem;
 import models.OrderStatus;
 import service.MenuService;
 import service.OrderService;
+import utils.InputHandler;
 import utils.Validator;
 import view.ConsoleView;
 import view.OrderView;
@@ -389,13 +390,13 @@ public class OrderController {
     }
 
     private void searchByTable() {
-        String table = readTable();
-        List<Order> found = orderService.searchByTable(table);
+        String keyword = InputHandler.readNonBlank(scanner, "Enter Table to search : ");
+        List<Order> found = orderService.searchByTable(keyword);
         if (found.isEmpty()) {
-            console.showMessage("No orders found for table " + table + ".");
+            console.showMessage("No orders found for table " + keyword + ".");
             return;
         }
-        console.showMessage("\n----- Orders of table " + table + " -----");
+        console.showMessage("\n----- Orders of table " + keyword + " -----");
         for (Order order : found) {
             orderView.showOrderSummary(order, orderService.calculateTotal(order));
         }
