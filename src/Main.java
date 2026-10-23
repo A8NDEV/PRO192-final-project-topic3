@@ -3,14 +3,14 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 
-import controller.AppController;
-import controller.MenuController;
-import controller.OrderController;
+import business.MenuRepository;
+import business.MenuService;
+import business.OrderRepository;
+import business.OrderService;
+import dispatcher.AppDispatcher;
+import dispatcher.MenuDispatcher;
+import dispatcher.OrderDispatcher;
 import java.util.Scanner;
-import repository.MenuRepository;
-import repository.OrderRepository;
-import service.MenuService;
-import service.OrderService;
 
 /**
  *
@@ -29,10 +29,10 @@ public class Main {
 
         Scanner scanner = new Scanner(System.in);
         
-        MenuController menuController = new MenuController(menuService, scanner, orderService);
-        OrderController orderController = new OrderController(orderService, menuService, scanner);
+        MenuDispatcher menuDispatcher = new MenuDispatcher(menuService, scanner, orderService);
+        OrderDispatcher orderDispatcher = new OrderDispatcher(orderService, menuService, scanner);
 
-        AppController appController = new AppController(scanner, menuController, orderController);
-        appController.run();
+        AppDispatcher appDispatcher = new AppDispatcher(scanner, menuDispatcher, orderDispatcher);
+        appDispatcher.run();
     }
 }

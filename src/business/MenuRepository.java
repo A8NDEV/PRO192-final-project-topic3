@@ -1,4 +1,4 @@
-package repository;
+package business;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -82,6 +82,7 @@ public class MenuRepository {
         for(int i = 0; i < menuList.size(); i++){
             if(menuList.get(i).getItemId().equalsIgnoreCase(id.trim())){
                 menuList.remove(i);
+                return true;
             }
         }
         return false;

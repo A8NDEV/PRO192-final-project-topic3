@@ -2,24 +2,22 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package controller;
+package dispatcher;
 
-import exception.BusinessException;
+import business.BusinessException;
+import business.MenuService;
+import business.OrderService;
 import java.io.IOException;
 import java.util.List;
 import java.util.Scanner;
 import models.MenuItem;
-import service.MenuService;
 import utils.InputHandler;
-import view.ConsoleView;
-import view.MenuView;
-import service.OrderService;
 
 /**
  *
  * @author ASUS
  */
-public class MenuController {
+public class MenuDispatcher {
 
     private static final String[] MENU_OPTIONS = {
         "Add new Item",
@@ -32,11 +30,10 @@ public class MenuController {
 
     private MenuService menuService;
     private ConsoleView console = new ConsoleView();
-    private MenuView menuView = new MenuView();
     private Scanner scanner;
     private OrderService orderService;
 
-    public MenuController(MenuService menuService, Scanner scanner, OrderService orderService) {
+    public MenuDispatcher(MenuService menuService, Scanner scanner, OrderService orderService) {
         this.menuService = menuService;
         this.scanner = scanner;
         this.orderService = orderService;
@@ -48,7 +45,7 @@ public class MenuController {
             console.showMenu("Menu Management", MENU_OPTIONS, "Back");
 
             try {
-                choice = Integer.parseInt(scanner.nextLine());
+                choice = Integer.parseInt(scanner.nextLine().trim());
             } catch (NumberFormatException e) {
                 console.showMessage("Value must be an integer.");
                 continue;
@@ -113,7 +110,7 @@ public class MenuController {
                 String id = InputHandler.readNonBlank(scanner, "Enter Item ID to search: ");
                 MenuItem item = menuService.findById(id);
                 if (item != null) {
-                    menuView.showItem(item);
+                    console.showItem(item);
                 } else {
                     console.showMessage("Item not found.");
                 }
@@ -125,7 +122,7 @@ public class MenuController {
                     console.showMessage("Item not found");
                 } else {
                     for (MenuItem i : list) {
-                        menuView.showItem(i);
+                        console.showItem(i);
                     }
                 }
                 break;
@@ -162,17 +159,17 @@ public class MenuController {
 
     private void displayAvailable() {
         if (menuService.getMenuList().isEmpty()) {
-            menuView.showMenuEmpty();
+            console.showMessage("No items available.");
             return;
         }
         List<MenuItem> available = menuService.getAvailableItems();
         if (available.isEmpty()) {
-            menuView.showNoAvailableItems();
+            console.showMessage("No items are currently available.");
             return;
         }
-        menuView.showAvailableHeader();
+        console.showAvailableHeader();
         for (MenuItem item : available) {
-            menuView.showItem(item);
+            console.showItem(item);
         }
     }
 
@@ -188,7 +185,7 @@ public class MenuController {
         }
         console.showMessage("\n----- Items with no orders -----");
         for (MenuItem item : items) {
-            menuView.showItem(item);
+            console.showItem(item);
         }
     }
 }

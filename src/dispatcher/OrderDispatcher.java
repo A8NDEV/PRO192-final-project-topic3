@@ -1,6 +1,8 @@
-package controller;
+package dispatcher;
 
-import exception.BusinessException;
+import business.BusinessException;
+import business.MenuService;
+import business.OrderService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -9,14 +11,11 @@ import models.MenuItem;
 import models.Order;
 import models.OrderItem;
 import models.OrderStatus;
-import service.MenuService;
-import service.OrderService;
+import utils.InputHandler;
 import utils.Validator;
-import view.ConsoleView;
-import view.OrderView;
 
 
-public class OrderController {
+public class OrderDispatcher {
 
     private static final String[] ORDER_OPTIONS = {
         "Create new order for a table",
@@ -43,9 +42,8 @@ public class OrderController {
     private final MenuService menuService;
     private final Scanner scanner;
     private final ConsoleView console = new ConsoleView();
-    private final OrderView orderView = new OrderView();
 
-    public OrderController(OrderService orderService, MenuService menuService, Scanner scanner) {
+    public OrderDispatcher(OrderService orderService, MenuService menuService, Scanner scanner) {
         this.orderService = orderService;
         this.menuService = menuService;
         this.scanner = scanner;
@@ -389,22 +387,22 @@ public class OrderController {
     }
 
     private void searchByTable() {
-        String table = readTable();
-        List<Order> found = orderService.searchByTable(table);
+        String keyword = InputHandler.readNonBlank(scanner, "Enter Table to search : ");
+        List<Order> found = orderService.searchByTable(keyword);
         if (found.isEmpty()) {
-            console.showMessage("No orders found for table " + table + ".");
+            console.showMessage("No orders found for table " + keyword + ".");
             return;
         }
-        console.showMessage("\n----- Orders of table " + table + " -----");
+        console.showMessage("\n----- Orders of table " + keyword + " -----");
         for (Order order : found) {
-            orderView.showOrderSummary(order, orderService.calculateTotal(order));
+            console.showOrderSummary(order, orderService.calculateTotal(order));
         }
     }
 
     private void searchByOrderId() {
         Order order = readOrderById(false);
         if (order != null) {
-            orderView.showOrderSummary(order, orderService.calculateTotal(order));
+            console.showOrderSummary(order, orderService.calculateTotal(order));
         }
     }
 
@@ -416,7 +414,7 @@ public class OrderController {
         }
         console.showMessage("\n----- Pending orders -----");
         for (Order order : openOrders) {
-            orderView.showOrderSummary(order, orderService.calculateTotal(order));
+            console.showOrderSummary(order, orderService.calculateTotal(order));
         }
         return true;
     }
@@ -473,7 +471,7 @@ public class OrderController {
         }
         console.showMessage("\n----- Orders sorted by total (high to low) -----");
         for (Order order : sorted) {
-            orderView.showOrderSummary(order, orderService.calculateTotal(order));
+            console.showOrderSummary(order, orderService.calculateTotal(order));
         }
     }
 }
