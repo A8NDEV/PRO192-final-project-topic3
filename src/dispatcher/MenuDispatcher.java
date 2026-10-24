@@ -168,9 +168,7 @@ public class MenuDispatcher {
             return;
         }
         console.showAvailableHeader();
-        for (MenuItem item : available) {
-            console.showItem(item);
-        }
+        console.showAvailableTable(available);
     }
 
     private void displayItemsNoOrder() {
