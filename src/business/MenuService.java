@@ -64,7 +64,7 @@ public class MenuService {
 
     public void addItem(MenuItem item) {
         if (findById(item.getItemId()) != null) {
-            throw new DuplicateItemException(item.getItemId());
+            throw new BusinessException.DuplicateItemException(item.getItemId());
         }
         menuRepository.add(item);
     }
@@ -73,10 +73,10 @@ public class MenuService {
         menuRepository.save();
     }
 
-    public List<MenuItem> getAvailableItems(){
+    public List<MenuItem> getAvailableItems() {
         List<MenuItem> result = new ArrayList<>();
-        for(MenuItem item : menuRepository.findAll()){
-            if(item != null && item.isStatus()){
+        for (MenuItem item : menuRepository.findAll()) {
+            if (item != null && item.isStatus()) {
                 result.add(item);
             }
         }
@@ -87,15 +87,7 @@ public class MenuService {
         return menuRepository.findAll();
     }
 
-    public void deleteItem(String id) {
-        MenuItem item = findById(id);
-        if (item == null) {
-            throw new ItemNotFoundException(id);
-        }
-        menuRepository.delete(id);
-    }
-
-     //Hien thi mon chua co don
+    //Hien thi mon chua co don
     public List<MenuItem> getUnorderedItems(List<Order> orders) {
         //danh sach cac mon da tung duoc order
         Set<String> listItemOrder = new HashSet<>();
@@ -115,5 +107,62 @@ public class MenuService {
             }
         }
         return result;
+    }
+
+    public void updateItem(MenuItem updatedItem) {
+        if (updatedItem == null || updatedItem.getItemId() == null) {
+            throw new BusinessException("Item cannot be null.");
+        }
+
+        MenuItem currentItem = findById(updatedItem.getItemId());
+        if (currentItem == null) {
+            throw new BusinessException.ItemNotFoundException(updatedItem.getItemId());
+        }
+
+        if (updatedItem.getItemName() == null || updatedItem.getItemName().trim().isEmpty()) {
+            throw new BusinessException("Item name cannot be blank.");
+        }
+        if (updatedItem.getPrice() <= 0) {
+            throw new BusinessException("Price must be greater than 0.");
+        }
+        menuRepository.update(updatedItem);
+    }
+
+    public boolean isItemOrdered(String itemId, List<Order> orders) {
+        if (itemId == null || orders == null || orders.isEmpty()) {
+            return false;
+        }
+
+        String targetId = itemId.trim();
+
+        for (Order order : orders) {
+            if (order == null || order.getItemsList() == null) {
+                continue;
+            }
+
+            for (OrderItem item : order.getItemsList()) {
+                if (item == null || item.getMenuItem() == null) {
+                    continue;
+                }
+
+                String currentId = item.getMenuItem().getItemId();
+                if (currentId != null && targetId.equalsIgnoreCase(currentId.trim())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public void deleteItem(String id, List<Order> orders) {
+        MenuItem item = findById(id);
+        if (item == null) {
+            throw new BusinessException.ItemNotFoundException(id);
+        }
+        if (isItemOrdered(id, orders)) {
+            throw new BusinessException("Cannot delete item '" + id
+                    + "' because it has already been ordered.");
+        }
+        menuRepository.delete(id);
     }
 }
