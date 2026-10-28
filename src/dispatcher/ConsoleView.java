@@ -65,6 +65,40 @@ public class ConsoleView {
         }
     }
 
+    public void showItemTable(List<MenuItem> items) {
+        if (items == null || items.isEmpty()) {
+            System.out.println("No items to display.");
+            return;
+        }
+
+        int idW = "ID".length();
+        int nameW = "Name".length();
+        int catW = "Category".length();
+        int priceW = 12; // "Price (VND)"
+        int statusW = "Status".length();
+
+        for (MenuItem i : items) {
+            if (i != null) {
+                if (i.getItemId() != null) idW = Math.max(idW, i.getItemId().length());
+                if (i.getItemName() != null) nameW = Math.max(nameW, i.getItemName().length());
+                if (i.getCategory() != null) catW = Math.max(catW, i.getCategory().length());
+                statusW = Math.max(statusW, (i.isStatus() ? "Available" : "Unavailable").length());
+            }
+        }
+
+        String fmt = "%-" + idW + "s  %-" + nameW + "s  %-" + catW + "s  %" + priceW + "s  %-" + statusW + "s%n";
+        int total = idW + nameW + catW + priceW + statusW + 8; // 4 khoảng cách x 2 dấu cách
+
+        System.out.printf(fmt, "ID", "Name", "Category", "Price (VND)", "Status");
+        System.out.println(dashes(total));
+        for (MenuItem i : items) {
+            if (i != null) {
+                System.out.printf(fmt, i.getItemId(), i.getItemName(), i.getCategory(),
+                        String.format("%,.0f", i.getPrice()), (i.isStatus() ? "Available" : "Unavailable"));
+            }
+        }
+    }
+
     private String dashes(int n) {
         return new String(new char[n]).replace('\0', '-');
     }
