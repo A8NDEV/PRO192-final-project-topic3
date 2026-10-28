@@ -1,6 +1,8 @@
-package controller;
+package dispatcher;
 
-import exception.BusinessException;
+import business.BusinessException;
+import business.MenuService;
+import business.OrderService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -9,14 +11,11 @@ import models.MenuItem;
 import models.Order;
 import models.OrderItem;
 import models.OrderStatus;
-import service.MenuService;
-import service.OrderService;
+import utils.InputHandler;
 import utils.Validator;
-import view.ConsoleView;
-import view.OrderView;
 
 
-public class OrderController {
+public class OrderDispatcher {
 
     private static final String[] ORDER_OPTIONS = {
         "Create new order for a table",
@@ -37,15 +36,14 @@ public class OrderController {
         "Search by order ID"
     };
 
-    private static final int MAX_INVALID_ATTEMPTS = 3;
+
 
     private final OrderService orderService;
     private final MenuService menuService;
     private final Scanner scanner;
     private final ConsoleView console = new ConsoleView();
-    private final OrderView orderView = new OrderView();
 
-    public OrderController(OrderService orderService, MenuService menuService, Scanner scanner) {
+    public OrderDispatcher(OrderService orderService, MenuService menuService, Scanner scanner) {
         this.orderService = orderService;
         this.menuService = menuService;
         this.scanner = scanner;
@@ -249,93 +247,46 @@ public class OrderController {
 
 
     private Order readOrderById(boolean mustBePending) {
-        int attempts = 0;
-        while (true) {
-            String id = readLine("Order ID: ");
-            Order order = orderService.findById(id);
+        String id = readLine("Order ID: ");
+        Order order = orderService.findById(id);
 
-            if (order == null) {
-                attempts++;
-                console.showError("Order ID '" + id + "' does not exist. Please check the ID and try again.");
-                if (!handleInvalidAttempt(attempts, "Order ID")) {
-                    return null;
-                }
-                if (attempts >= MAX_INVALID_ATTEMPTS) {
-                    attempts = 0;
-                }
-                continue;
-            }
-
-            if (mustBePending && order.getStatus() != OrderStatus.PENDING) {
-                console.showError("Order " + order.getOrderId() + " is " + order.getStatus()
-                        + " and cannot be modified. Only PENDING orders can be changed.");
-                return null;
-            }
-            return order;
+        if (order == null) {
+            console.showError("Order ID '" + id + "' does not exist.");
+            return null;
         }
+
+        if (mustBePending && order.getStatus() != OrderStatus.PENDING) {
+            console.showError("Order " + order.getOrderId() + " is " + order.getStatus()
+                    + " and cannot be modified. Only PENDING orders can be changed.");
+            return null;
+        }
+        return order;
     }
 
     private String readItemIdInOrder(Order order) {
-        int attempts = 0;
-        while (true) {
-            String id = readLine("Menu item ID in this order: ");
-            boolean belongs = false;
-            for (OrderItem item : order.getItemsList()) {
-                if (item.getMenuItem().getItemId().equalsIgnoreCase(id)) {
-                    belongs = true;
-                    break;
-                }
-            }
-
-            if (belongs) {
+        String id = readLine("Menu item ID in this order: ");
+        for (OrderItem item : order.getItemsList()) {
+            if (item.getMenuItem().getItemId().equalsIgnoreCase(id)) {
                 return id;
             }
-
-            attempts++;
-            console.showError("Menu item ID '" + id + "' is not in order "
-                    + order.getOrderId() + ". Enter an item ID shown in this order.");
-            if (!handleInvalidAttempt(attempts, "Menu item ID")) {
-                return null;
-            }
-            if (attempts >= MAX_INVALID_ATTEMPTS) {
-                attempts = 0;
-            }
         }
+        console.showError("Menu item ID '" + id + "' is not in order " + order.getOrderId() + ".");
+        return null;
     }
 
     private MenuItem readAvailableMenuItem() {
-        int attempts = 0;
-        while (true) {
-            String itemId = readLine("Menu item ID: ");
-            MenuItem item = menuService.findById(itemId);
+        String itemId = readLine("Menu item ID: ");
+        MenuItem item = menuService.findById(itemId);
 
-            if (item == null) {
-                attempts++;
-                console.showError("Menu item ID '" + itemId + "' does not exist. Please check the ID.");
-            } else if (!item.isStatus()) {
-                attempts++;
-                console.showError("Menu item '" + itemId + "' is currently unavailable. Choose an available item.");
-            } else {
-                return item;
-            }
-
-            if (!handleInvalidAttempt(attempts, "Menu item ID")) {
-                return null;
-            }
-            if (attempts >= MAX_INVALID_ATTEMPTS) {
-                attempts = 0;
-            }
+        if (item == null) {
+            console.showError("Menu item ID '" + itemId + "' does not exist.");
+            return null;
         }
-    }
-
-    private boolean handleInvalidAttempt(int attempts, String idType) {
-        if (attempts < MAX_INVALID_ATTEMPTS) {
-            console.showMessage("Attempts remaining: " + (MAX_INVALID_ATTEMPTS - attempts) + ".");
-            return true;
+        if (!item.isStatus()) {
+            console.showError("Menu item '" + itemId + "' is currently unavailable.");
+            return null;
         }
-
-        console.showMessage("You have entered an invalid " + idType + " 3 times.");
-        return readYesNo("Do you want to continue trying? (y/n): ");
+        return item;
     }
 
     private int readPositiveQuantity(String prompt) {
@@ -389,22 +340,22 @@ public class OrderController {
     }
 
     private void searchByTable() {
-        String table = readTable();
-        List<Order> found = orderService.searchByTable(table);
+        String keyword = InputHandler.readNonBlank(scanner, "Enter Table to search : ");
+        List<Order> found = orderService.searchByTable(keyword);
         if (found.isEmpty()) {
-            console.showMessage("No orders found for table " + table + ".");
+            console.showMessage("No orders found for table " + keyword + ".");
             return;
         }
-        console.showMessage("\n----- Orders of table " + table + " -----");
+        console.showMessage("\n----- Orders of table " + keyword + " -----");
         for (Order order : found) {
-            orderView.showOrderSummary(order, orderService.calculateTotal(order));
+            console.showOrderSummary(order, orderService.calculateTotal(order));
         }
     }
 
     private void searchByOrderId() {
         Order order = readOrderById(false);
         if (order != null) {
-            orderView.showOrderSummary(order, orderService.calculateTotal(order));
+            console.showOrderSummary(order, orderService.calculateTotal(order));
         }
     }
 
@@ -416,7 +367,7 @@ public class OrderController {
         }
         console.showMessage("\n----- Pending orders -----");
         for (Order order : openOrders) {
-            orderView.showOrderSummary(order, orderService.calculateTotal(order));
+            console.showOrderSummary(order, orderService.calculateTotal(order));
         }
         return true;
     }
@@ -473,7 +424,7 @@ public class OrderController {
         }
         console.showMessage("\n----- Orders sorted by total (high to low) -----");
         for (Order order : sorted) {
-            orderView.showOrderSummary(order, orderService.calculateTotal(order));
+            console.showOrderSummary(order, orderService.calculateTotal(order));
         }
     }
 }

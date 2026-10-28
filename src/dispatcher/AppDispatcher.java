@@ -1,8 +1,6 @@
-package controller;
+package dispatcher;
 
 import java.util.Scanner;
-
-import view.ConsoleView;
 
 /**
  *
@@ -11,19 +9,19 @@ import view.ConsoleView;
 /**
  * Điều hướng menu chính: chọn vào menu con Item hoặc Order.
  */
-public class AppController {
+public class AppDispatcher {
 
     private static final String[] MAIN_OPTIONS = {"Menu management", "Order management"};
 
     private final Scanner scanner;
-    private final MenuController menuController;
-    private final OrderController orderController;
+    private final MenuDispatcher menuDispatcher;
+    private final OrderDispatcher orderDispatcher;
     private final ConsoleView console = new ConsoleView();
 
-    public AppController(Scanner scanner, MenuController menuController, OrderController orderController) {
+    public AppDispatcher(Scanner scanner, MenuDispatcher menuDispatcher, OrderDispatcher orderDispatcher) {
         this.scanner = scanner;
-        this.menuController = menuController;
-        this.orderController = orderController;
+        this.menuDispatcher = menuDispatcher;
+        this.orderDispatcher = orderDispatcher;
     }
     
     
@@ -37,7 +35,7 @@ public class AppController {
             console.showMenu("Table-side Ordering", MAIN_OPTIONS, "Exit");
 
             try {
-                choice = Integer.parseInt(scanner.nextLine());
+                choice = Integer.parseInt(scanner.nextLine().trim());
             } catch (NumberFormatException e) {
                 console.showMessage("Value must be an integer.");
                 continue;
@@ -45,10 +43,10 @@ public class AppController {
 
             switch (choice) {
                 case 1:
-                    menuController.run();
+                    menuDispatcher.run();
                     break;
                 case 2:
-                    orderController.run();
+                    orderDispatcher.run();
                     break;
                 case 0:
                     break;

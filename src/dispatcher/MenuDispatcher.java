@@ -1,28 +1,25 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
-package controller;
+package dispatcher;
 
-import exception.BusinessException;
+import business.BusinessException;
+import business.MenuService;
+import business.OrderService;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
 import models.MenuItem;
-import service.MenuService;
+import models.Order;
 import utils.InputHandler;
-import view.ConsoleView;
-import view.MenuView;
-import service.OrderService;
 
 /**
  *
  * @author ASUS
  */
-public class MenuController {
+public class MenuDispatcher {
 
     private static final String[] MENU_OPTIONS = {
         "Add new Item",
+        "Update Item By ID",
         "Search Item",
         "Delete Item By ID",
         "Display available items",
@@ -30,13 +27,12 @@ public class MenuController {
     };
     private static final String[] SEARCH_OPTIONS = {"Search by ID", "Search by Name"};
 
-    private MenuService menuService;
-    private ConsoleView console = new ConsoleView();
-    private MenuView menuView = new MenuView();
-    private Scanner scanner;
-    private OrderService orderService;
+    private final MenuService menuService;
+    private final ConsoleView console = new ConsoleView();
+    private final Scanner scanner;
+    private final OrderService orderService;
 
-    public MenuController(MenuService menuService, Scanner scanner, OrderService orderService) {
+    public MenuDispatcher(MenuService menuService, Scanner scanner, OrderService orderService) {
         this.menuService = menuService;
         this.scanner = scanner;
         this.orderService = orderService;
@@ -48,7 +44,7 @@ public class MenuController {
             console.showMenu("Menu Management", MENU_OPTIONS, "Back");
 
             try {
-                choice = Integer.parseInt(scanner.nextLine());
+                choice = Integer.parseInt(scanner.nextLine().trim());
             } catch (NumberFormatException e) {
                 console.showMessage("Value must be an integer.");
                 continue;
@@ -59,15 +55,18 @@ public class MenuController {
                     addItem();
                     break;
                 case 2:
-                    searchItem();
+                    updateItem();
                     break;
                 case 3:
-                    deleteItem();
+                    searchItem();
                     break;
                 case 4:
-                    displayAvailable();
+                    deleteItem();
                     break;
                 case 5:
+                    displayAvailable();
+                    break;
+                case 6:
                     displayItemsNoOrder();
                     break;
                 case 0:
@@ -80,7 +79,16 @@ public class MenuController {
     }
 
     private void addItem() {
-        String id = InputHandler.readNonBlank(scanner, "Enter item ID: ");
+        String id;
+        while (true) {
+            id = InputHandler.readNonBlank(scanner, "Enter item ID: ");
+            if (menuService.findById(id) != null) {
+                console.showError("Item ID '" + id + "' already exists! Please enter a different ID.");
+                continue;
+            }
+            break;
+        }
+
         String name = InputHandler.readNonBlank(scanner, "Enter item Name: ");
         String category = InputHandler.readNonBlank(scanner, "Enter Category: ");
         double price = InputHandler.readValidPrice(scanner, "Enter Price: ");
@@ -99,6 +107,49 @@ public class MenuController {
         }
     }
 
+    private void updateItem() {
+        String id = InputHandler.readNonBlank(scanner, "Enter item ID to update: ");
+        MenuItem currentItem = menuService.findById(id);
+
+        if (currentItem == null) {
+            console.showError("Item ID '" + id + "' not found!");
+            return;
+        }
+
+        console.showMessage("\n--- Current Item Details ---");
+        console.showItem(currentItem);
+        console.showMessage("Press [Enter] to keep current value.\n");
+
+        String newName = InputHandler.readOptionalNonBlank(scanner,
+                "Enter new Name [" + currentItem.getItemName() + "]: ", currentItem.getItemName());
+
+        String newCategory = InputHandler.readOptionalNonBlank(scanner,
+                "Enter new Category [" + currentItem.getCategory() + "]: ", currentItem.getCategory());
+
+        double newPrice = InputHandler.readOptionalPrice(scanner,
+                "Enter new Price [" + String.format("%,.0f", currentItem.getPrice()) + "]: ", currentItem.getPrice());
+
+        boolean newStatus = InputHandler.readOptionalBoolean(scanner,
+                "Show/Hide? (true/false) [" + currentItem.isStatus() + "]: ", currentItem.isStatus());
+
+        if (!InputHandler.readConfirmed(scanner, "Confirm update this item? (y/n): ")) {
+            console.showMessage("Update cancelled. No changes made.");
+            return;
+        }
+
+        MenuItem updatedItem = new MenuItem(currentItem.getItemId(), newName, newCategory, newPrice, newStatus);
+
+        try {
+            menuService.updateItem(updatedItem);
+            menuService.save();
+            console.showMessage("Item updated successfully!");
+        } catch (BusinessException e) {
+            console.showError(e.getMessage());
+        } catch (IOException e) {
+            console.showError("Error saving file: " + e.getMessage());
+        }
+    }
+
     private void searchItem() {
         console.showMenu("Search Item Menu", SEARCH_OPTIONS, "Exit");
         int choice = -1;
@@ -113,7 +164,7 @@ public class MenuController {
                 String id = InputHandler.readNonBlank(scanner, "Enter Item ID to search: ");
                 MenuItem item = menuService.findById(id);
                 if (item != null) {
-                    menuView.showItem(item);
+                    console.showItemTable(Collections.singletonList(item));
                 } else {
                     console.showMessage("Item not found.");
                 }
@@ -122,11 +173,9 @@ public class MenuController {
                 String name = InputHandler.readNonBlank(scanner, "Enter Item Name to search: ");
                 List<MenuItem> list = menuService.findByName(name);
                 if (list.isEmpty()) {
-                    console.showMessage("Item not found");
+                    console.showMessage("Item not found.");
                 } else {
-                    for (MenuItem i : list) {
-                        menuView.showItem(i);
-                    }
+                    console.showItemTable(list);
                 }
                 break;
 
@@ -141,16 +190,28 @@ public class MenuController {
     private void deleteItem() {
         String id = InputHandler.readNonBlank(scanner, "Enter Item ID: ");
         MenuItem item = menuService.findById(id);
+
         if (item == null) {
-            console.showError("Item not found!");
+            console.showError("Item not found.");
             return;
         }
+
+        console.showItem(item);
+
+        List<Order> allOrders = (orderService != null) ? orderService.getAllOrders() : Collections.emptyList();
+
+        if (menuService.isItemOrdered(id, allOrders)) {
+            console.showError("Item has orders. Cannot delete.");
+            return;
+        }
+
+        if (!InputHandler.readConfirmed(scanner, "Confirm delete (y/n): ")) {
+            console.showMessage("Cancelled.");
+            return;
+        }
+
         try {
-            if (!InputHandler.readConfirmed(scanner, "Confirm Yes OR NO (y/n): ")) {
-                console.showMessage("No changes made.");
-                return;
-            }
-            menuService.deleteItem(id);
+            menuService.deleteItem(id, allOrders);
             menuService.save();
             console.showMessage("Item deleted successfully!");
         } catch (BusinessException e) {
@@ -162,18 +223,16 @@ public class MenuController {
 
     private void displayAvailable() {
         if (menuService.getMenuList().isEmpty()) {
-            menuView.showMenuEmpty();
+            console.showMessage("No items available.");
             return;
         }
         List<MenuItem> available = menuService.getAvailableItems();
         if (available.isEmpty()) {
-            menuView.showNoAvailableItems();
+            console.showMessage("No items are currently available.");
             return;
         }
-        menuView.showAvailableHeader();
-        for (MenuItem item : available) {
-            menuView.showItem(item);
-        }
+        console.showAvailableHeader();
+        console.showAvailableTable(available);
     }
 
     private void displayItemsNoOrder() {
@@ -186,9 +245,7 @@ public class MenuController {
             console.showMessage("All items have been ordered.");
             return;
         }
-        console.showMessage("\n----- Items with no orders -----");
-        for (MenuItem item : items) {
-            menuView.showItem(item);
-        }
+        console.showMessage("\n===== Items with no orders =====");
+        console.showItemTable(items);
     }
 }
