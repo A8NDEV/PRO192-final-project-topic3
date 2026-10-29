@@ -247,7 +247,7 @@ public class OrderDispatcher {
 
 
     private Order readOrderById(boolean mustBePending) {
-        String id = readLine("Order ID: ");
+        String id = InputHandler.readNonBlank(scanner, "Order ID: ");
         Order order = orderService.findById(id);
 
         if (order == null) {
@@ -264,7 +264,7 @@ public class OrderDispatcher {
     }
 
     private String readItemIdInOrder(Order order) {
-        String id = readLine("Menu item ID in this order: ");
+        String id = InputHandler.readNonBlank(scanner, "Menu item ID in this order: ");
         for (OrderItem item : order.getItemsList()) {
             if (item.getMenuItem().getItemId().equalsIgnoreCase(id)) {
                 return id;
@@ -275,7 +275,7 @@ public class OrderDispatcher {
     }
 
     private MenuItem readAvailableMenuItem() {
-        String itemId = readLine("Menu item ID: ");
+        String itemId = InputHandler.readNonBlank(scanner, "Menu item ID: ");
         MenuItem item = menuService.findById(itemId);
 
         if (item == null) {
@@ -291,7 +291,7 @@ public class OrderDispatcher {
 
     private int readPositiveQuantity(String prompt) {
         while (true) {
-            String raw = readLine(prompt);
+            String raw = InputHandler.readNonBlank(scanner, prompt);
             try {
                 int quantity = Integer.parseInt(raw);
                 if (quantity > 0) {
@@ -306,7 +306,7 @@ public class OrderDispatcher {
 
     private int readNonNegativeQuantity(String prompt) {
         while (true) {
-            String raw = readLine(prompt);
+            String raw = InputHandler.readNonBlank(scanner, prompt);
             try {
                 int quantity = Integer.parseInt(raw);
                 if (quantity >= 0) {
@@ -374,7 +374,7 @@ public class OrderDispatcher {
 
     private boolean readYesNo(String prompt) {
         while (true) {
-            String answer = readLine(prompt);
+            String answer = InputHandler.readNonBlank(scanner,prompt);
             if (answer.equalsIgnoreCase("y")) {
                 return true;
             }
@@ -387,7 +387,7 @@ public class OrderDispatcher {
 
     private String readTable() {
         while (true) {
-            String raw = readLine("Table: ");
+            String raw = InputHandler.readNonBlank(scanner, "Table: ");
             String table = Validator.normalizeTable(raw);
             if (table == null) {
                 console.showError("Invalid table. Use one letter followed by a number, for example A1 or B12.");
@@ -400,14 +400,11 @@ public class OrderDispatcher {
         }
     }
 
-    private String readLine(String prompt) {
-        System.out.print(prompt);
-        return scanner.nextLine().trim();
-    }
+
 
     private String readValid(String prompt, Function<String, String> errorChecker) {
         while (true) {
-            String value = readLine(prompt);
+            String value = InputHandler.readNonBlank(scanner, prompt);
             String error = errorChecker.apply(value);
             if (error == null) {
                 return value;
