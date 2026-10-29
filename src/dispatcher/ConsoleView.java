@@ -109,4 +109,50 @@ public class ConsoleView {
                 order.getOrderId(), order.getOrderDate(), order.getTableNumber(),
                 order.getCustomerName(), order.getItemsList().size(), total));
     }
+
+    // Hien thi hoa don tam truoc khi luu order.
+    public void showDraftBill(String table, String customerName, String phone, List<models.OrderItem> items) {
+        System.out.println("\n================ ORDER BILL PREVIEW ================");
+        System.out.println("Table         : " + table);
+        System.out.println("Customer      : " + customerName);
+        System.out.println("Phone         : " + phone);
+        showDraftItems(items);
+        double total = 0;
+        for (models.OrderItem item : items) {
+            total += item.getMenuItem().getPrice() * item.getQuantity();
+        }
+        System.out.printf("Grand total   : %,.0f VND%n", total);
+        System.out.println("====================================================");
+    }
+
+    // Hien thi cac mon trong hoa don tam, dung khi xem bill va chinh sua.
+    public void showDraftItems(List<models.OrderItem> items) {
+        if (items == null || items.isEmpty()) {
+            System.out.println("No items have been added.");
+            return;
+        }
+        System.out.printf("%-8s %-24s %8s %14s %14s%n", "Item ID", "Item name", "Quantity", "Unit price", "Line total");
+        System.out.println("--------------------------------------------------------------------------");
+        for (models.OrderItem item : items) {
+            double price = item.getMenuItem().getPrice();
+            double lineTotal = price * item.getQuantity();
+            System.out.printf("%-8s %-24s %8d %14s %14s%n",
+                    item.getMenuItem().getItemId(), item.getMenuItem().getItemName(), item.getQuantity(),
+                    String.format("%,.0f", price), String.format("%,.0f", lineTotal));
+        }
+    }
+
+    // Hien thi hoa don day du cua order da ton tai.
+    public void showOrderBill(Order order, double total) {
+        System.out.println("\n==================== ORDER BILL ====================");
+        System.out.println("Order ID      : " + order.getOrderId());
+        System.out.println("Date          : " + order.getOrderDate());
+        System.out.println("Table         : " + order.getTableNumber());
+        System.out.println("Customer      : " + order.getCustomerName());
+        System.out.println("Phone         : " + order.getCustomerPhone());
+        System.out.println("Status        : " + order.getStatus());
+        showDraftItems(order.getItemsList());
+        System.out.printf("Grand total   : %,.0f VND%n", total);
+        System.out.println("====================================================");
+    }
 }
