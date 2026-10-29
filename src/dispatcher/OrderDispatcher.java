@@ -36,7 +36,7 @@ public class OrderDispatcher {
         "Search by order ID"
     };
 
-    private static final int MAX_INVALID_ATTEMPTS = 3;
+
 
     private final OrderService orderService;
     private final MenuService menuService;
@@ -247,93 +247,46 @@ public class OrderDispatcher {
 
 
     private Order readOrderById(boolean mustBePending) {
-        int attempts = 0;
-        while (true) {
-            String id = readLine("Order ID: ");
-            Order order = orderService.findById(id);
+        String id = readLine("Order ID: ");
+        Order order = orderService.findById(id);
 
-            if (order == null) {
-                attempts++;
-                console.showError("Order ID '" + id + "' does not exist. Please check the ID and try again.");
-                if (!handleInvalidAttempt(attempts, "Order ID")) {
-                    return null;
-                }
-                if (attempts >= MAX_INVALID_ATTEMPTS) {
-                    attempts = 0;
-                }
-                continue;
-            }
-
-            if (mustBePending && order.getStatus() != OrderStatus.PENDING) {
-                console.showError("Order " + order.getOrderId() + " is " + order.getStatus()
-                        + " and cannot be modified. Only PENDING orders can be changed.");
-                return null;
-            }
-            return order;
+        if (order == null) {
+            console.showError("Order ID '" + id + "' does not exist.");
+            return null;
         }
+
+        if (mustBePending && order.getStatus() != OrderStatus.PENDING) {
+            console.showError("Order " + order.getOrderId() + " is " + order.getStatus()
+                    + " and cannot be modified. Only PENDING orders can be changed.");
+            return null;
+        }
+        return order;
     }
 
     private String readItemIdInOrder(Order order) {
-        int attempts = 0;
-        while (true) {
-            String id = readLine("Menu item ID in this order: ");
-            boolean belongs = false;
-            for (OrderItem item : order.getItemsList()) {
-                if (item.getMenuItem().getItemId().equalsIgnoreCase(id)) {
-                    belongs = true;
-                    break;
-                }
-            }
-
-            if (belongs) {
+        String id = readLine("Menu item ID in this order: ");
+        for (OrderItem item : order.getItemsList()) {
+            if (item.getMenuItem().getItemId().equalsIgnoreCase(id)) {
                 return id;
             }
-
-            attempts++;
-            console.showError("Menu item ID '" + id + "' is not in order "
-                    + order.getOrderId() + ". Enter an item ID shown in this order.");
-            if (!handleInvalidAttempt(attempts, "Menu item ID")) {
-                return null;
-            }
-            if (attempts >= MAX_INVALID_ATTEMPTS) {
-                attempts = 0;
-            }
         }
+        console.showError("Menu item ID '" + id + "' is not in order " + order.getOrderId() + ".");
+        return null;
     }
 
     private MenuItem readAvailableMenuItem() {
-        int attempts = 0;
-        while (true) {
-            String itemId = readLine("Menu item ID: ");
-            MenuItem item = menuService.findById(itemId);
+        String itemId = readLine("Menu item ID: ");
+        MenuItem item = menuService.findById(itemId);
 
-            if (item == null) {
-                attempts++;
-                console.showError("Menu item ID '" + itemId + "' does not exist. Please check the ID.");
-            } else if (!item.isStatus()) {
-                attempts++;
-                console.showError("Menu item '" + itemId + "' is currently unavailable. Choose an available item.");
-            } else {
-                return item;
-            }
-
-            if (!handleInvalidAttempt(attempts, "Menu item ID")) {
-                return null;
-            }
-            if (attempts >= MAX_INVALID_ATTEMPTS) {
-                attempts = 0;
-            }
+        if (item == null) {
+            console.showError("Menu item ID '" + itemId + "' does not exist.");
+            return null;
         }
-    }
-
-    private boolean handleInvalidAttempt(int attempts, String idType) {
-        if (attempts < MAX_INVALID_ATTEMPTS) {
-            console.showMessage("Attempts remaining: " + (MAX_INVALID_ATTEMPTS - attempts) + ".");
-            return true;
+        if (!item.isStatus()) {
+            console.showError("Menu item '" + itemId + "' is currently unavailable.");
+            return null;
         }
-
-        console.showMessage("You have entered an invalid " + idType + " 3 times.");
-        return readYesNo("Do you want to continue trying? (y/n): ");
+        return item;
     }
 
     private int readPositiveQuantity(String prompt) {

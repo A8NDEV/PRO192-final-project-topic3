@@ -55,7 +55,7 @@ public class InputHandler {
         return Boolean.parseBoolean(value.trim());
     }
 
-        public static int readTableNumber(Scanner scanner, String prompt) {
+    public static int readTableNumber(Scanner scanner, String prompt) {
         return readPositiveInt(scanner, prompt, "Table number must be a positive integer.");
     }
 
@@ -98,7 +98,7 @@ public class InputHandler {
         } while (!Validator.isValidDate(value));
         return LocalDate.parse(value.trim(), Validator.DATE_FORMAT);
     }
-    
+
     public static boolean readConfirmed(Scanner scanner, String prompt) {
         String value;
         do {
@@ -110,4 +110,46 @@ public class InputHandler {
         } while (!Validator.isConfirmed(value));
         return value.equalsIgnoreCase("y");
     }
+
+    public static String readOptionalNonBlank(Scanner scanner, String prompt, String dValue) {
+        while (true) {
+            System.out.print(prompt);
+            String value = scanner.nextLine().trim();
+
+            if (value.isEmpty()) {
+                return dValue;
+            }
+
+            if (!Validator.containsDelimiter(value)) {
+                return value;
+            }
+
+            System.out.println("Cannot '|' character.");
+        }
+    }
+    
+    public static double readOptionalPrice(Scanner scanner, String promt, double dValue){
+        while(true){
+            System.out.print(promt);
+            String value = scanner.nextLine().trim();
+            if(value.isEmpty()) return dValue;
+            if(Validator.isValidPrice(value)){
+                return Double.parseDouble(value);
+            }
+            System.out.println("Invalid price. Must be a positive number.");
+        }
+    }
+    
+    public static boolean readOptionalBoolean(Scanner scanner, String promt, boolean dStatus){
+        while(true){
+            System.out.print(promt);
+            String value = scanner.nextLine().trim();
+            if(value.isEmpty()) return dStatus;
+            if (Validator.isValidBoolean(value)) {
+                return Boolean.parseBoolean(value);
+            }
+            System.out.println("Invalid value. Enter true or false.");
+        }
+    }
+
 }
