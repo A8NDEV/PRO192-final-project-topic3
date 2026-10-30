@@ -2,11 +2,10 @@ package business;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import models.MenuItem;
@@ -20,13 +19,13 @@ public class OrderRepository {
     private static final String SEP = "\\|";
     private static final int FIELD_COUNT = 7;
 
-    private final Path filePath;
+    private final String filePath;
     private final MenuRepository menuRepository;
     private final List<Order> orders = new ArrayList<>();
     private int counter = 1;
 
     public OrderRepository(String filePath, MenuRepository menuRepository) {
-        this.filePath = Paths.get(filePath);
+        this.filePath = filePath;
         this.menuRepository = menuRepository;
         ensureFileExists();
         load();
@@ -48,24 +47,22 @@ public class OrderRepository {
         }
         return null;
     }
-    
+
     public boolean deleteById(String orderId) {
         Order order = findById(orderId);
-            if (order == null) {
-                 return false;
+        if (order == null) {
+            return false;
+        }
+        orders.remove(order);
+        return true;
     }
-
-    orders.remove(order);
-    return true;
-}
-
 
     public List<Order> findAll() {
         return new ArrayList<>(orders);
     }
 
     public void save() throws IOException {
-        try (BufferedWriter writer = Files.newBufferedWriter(filePath, StandardCharsets.UTF_8)) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
             for (Order order : orders) {
                 writer.write(format(order));
                 writer.newLine();
@@ -75,12 +72,13 @@ public class OrderRepository {
 
     private void ensureFileExists() {
         try {
-            Path parent = filePath.getParent();
-            if (parent != null) {
-                Files.createDirectories(parent);
+            File file = new File(filePath);
+            File parent = file.getParentFile();
+            if (parent != null && !parent.exists()) {
+                parent.mkdirs();
             }
-            if (!Files.exists(filePath)) {
-                Files.createFile(filePath);
+            if (!file.exists()) {
+                file.createNewFile();
             }
         } catch (IOException e) {
             System.out.println("Cannot create orders file: " + e.getMessage());
@@ -88,7 +86,7 @@ public class OrderRepository {
     }
 
     private void load() {
-        try (BufferedReader reader = Files.newBufferedReader(filePath, StandardCharsets.UTF_8)) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 if (line.trim().isEmpty()) {
@@ -107,6 +105,7 @@ public class OrderRepository {
         }
     }
 
+    // Order -> 1 dong text
     private String format(Order order) {
         StringBuilder items = new StringBuilder();
         for (OrderItem oi : order.getItemsList()) {
@@ -115,11 +114,12 @@ public class OrderRepository {
             }
             items.append(oi.getMenuItem().getItemId()).append(":").append(oi.getQuantity());
         }
-        return String.join("|", order.getOrderId(), order.getOrderDate(), order.getTableNumber(),
-                order.getCustomerName(), order.getCustomerPhone(), order.getStatus().name(),
-                items.toString());
+        return order.getOrderId() + "|" + order.getOrderDate() + "|" + order.getTableNumber()
+                + "|" + order.getCustomerName() + "|" + order.getCustomerPhone()
+                + "|" + order.getStatus().name() + "|" + items.toString();
     }
 
+    // 1 dong text -> Order (tra ve null neu dong sai dinh dang)
     private Order parse(String line) {
         try {
             String[] p = line.split(SEP, -1);
@@ -129,7 +129,8 @@ public class OrderRepository {
             Order order = new Order(p[0], p[1], p[2], p[3], p[4]);
             order.setStatus(OrderStatus.valueOf(p[5]));
             if (!p[6].isEmpty()) {
-                for (String entry : p[6].split(",")) {
+                String[] entries = p[6].split(",");
+                for (String entry : entries) {
                     String[] kv = entry.split(":");
                     MenuItem menuItem = findMenuItem(kv[0]);
                     if (menuItem == null) {
@@ -155,11 +156,14 @@ public class OrderRepository {
         return null;
     }
 
+    // Cap nhat counter de ma don moi khong trung ma da co trong file
     private void updateCounter(String orderId) {
         try {
-            counter = Math.max(counter, Integer.parseInt(orderId.substring(1)) + 1);
+            int number = Integer.parseInt(orderId.substring(1));
+            if (number + 1 > counter) {
+                counter = number + 1;
+            }
         } catch (RuntimeException e) {
-
         }
     }
 }

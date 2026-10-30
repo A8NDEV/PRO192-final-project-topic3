@@ -2,7 +2,6 @@ package business;
 
 import java.io.IOException;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -11,25 +10,28 @@ import models.Order;
 import models.OrderItem;
 import models.OrderStatus;
 
+
 public class OrderService {
 
-    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private final OrderRepository orderRepository;
 
     public OrderService(OrderRepository orderRepository) {
         this.orderRepository = orderRepository;
     }
 
- 
+
+    private String today() {
+        LocalDate d = LocalDate.now();
+        return String.format("%02d/%02d/%d", d.getDayOfMonth(), d.getMonthValue(), d.getYear());
+    }
+
     public Order createOrder(String tableNumber, String customerName, String customerPhone) {
         ensureNoPendingOrderForTable(tableNumber);
-        String today = LocalDate.now().format(DATE_FMT);
-        Order order = new Order(orderRepository.nextId(), today, tableNumber, customerName, customerPhone);
+        Order order = new Order(orderRepository.nextId(), today(), tableNumber, customerName, customerPhone);
         orderRepository.add(order);
         persist();
         return order;
     }
-
 
     public Order createOrder(String tableNumber, String customerName, String customerPhone,
                              List<OrderItem> items) {
@@ -38,8 +40,7 @@ public class OrderService {
             throw new BusinessException("Cannot create an order without any items.");
         }
 
-        String today = LocalDate.now().format(DATE_FMT);
-        Order order = new Order(orderRepository.nextId(), today, tableNumber, customerName, customerPhone);
+        Order order = new Order(orderRepository.nextId(), today(), tableNumber, customerName, customerPhone);
         for (OrderItem item : items) {
             if (item == null || item.getMenuItem() == null || item.getQuantity() <= 0) {
                 throw new BusinessException("Every order item must have a valid menu item and a positive quantity.");
@@ -79,7 +80,6 @@ public class OrderService {
         persist();
     }
 
-    
     public void updateQuantity(String orderId, String itemId, int newQuantity) {
         if (newQuantity < 0) {
             throw new BusinessException("Quantity cannot be negative. Enter 0 to remove the item.");
@@ -127,7 +127,6 @@ public class OrderService {
         persist();
     }
 
-    /** Backward-compatible cancellation method. */
     public void cancelOrder(String orderId) {
         changeStatus(orderId, OrderStatus.CANCELLED);
     }
@@ -200,6 +199,21 @@ public class OrderService {
         return orderRepository.findAll();
     }
 
+    // Sap xep giam dan theo tong tien (selection sort)
+    public List<Order> sortedByTotalDesc() {
+        List<Order> sorted = orderRepository.findAll();
+        for (int i = 0; i < sorted.size() - 1; i++) {
+            for (int j = i + 1; j < sorted.size(); j++) {
+                if (calculateTotal(sorted.get(j)) > calculateTotal(sorted.get(i))) {
+                    Order temp = sorted.get(i);
+                    sorted.set(i, sorted.get(j));
+                    sorted.set(j, temp);
+                }
+            }
+        }
+        return sorted;
+    }
+
     private OrderItem findItem(Order order, String itemId) {
         for (OrderItem item : order.getItemsList()) {
             if (item.getMenuItem().getItemId().equalsIgnoreCase(itemId)) {
@@ -239,11 +253,9 @@ public class OrderService {
             throw new BusinessException("Cannot save orders: " + e.getMessage());
         }
     }
-
     public List<Order> sortedByTotalDesc() {
         List<Order> sorted = orderRepository.findAll();
         sorted.sort((a, b) -> Double.compare(calculateTotal(b), calculateTotal(a)));
         return sorted;
     }
 }
-//.

@@ -103,7 +103,7 @@ public class MenuDispatcher {
         } catch (BusinessException e) {
             console.showError(e.getMessage());
         } catch (IOException e) {
-            console.showMessage("Error saving file: " + e.getMessage());
+            console.showError("Error saving file: " + e.getMessage());
         }
     }
 
@@ -154,7 +154,7 @@ public class MenuDispatcher {
         console.showMenu("Search Item Menu", SEARCH_OPTIONS, "Exit");
         int choice = -1;
         try {
-            choice = Integer.parseInt(scanner.nextLine());
+            choice = Integer.parseInt(scanner.nextLine().trim());
         } catch (NumberFormatException e) {
             console.showMessage("Value must be an integer.");
             return;
@@ -164,7 +164,7 @@ public class MenuDispatcher {
                 String id = InputHandler.readNonBlank(scanner, "Enter Item ID to search: ");
                 MenuItem item = menuService.findById(id);
                 if (item != null) {
-                    console.showItemTable(Collections.singletonList(item));
+                    console.showItem(item);
                 } else {
                     console.showMessage("Item not found.");
                 }
