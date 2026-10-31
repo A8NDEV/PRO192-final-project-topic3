@@ -239,20 +239,11 @@ public class OrderService {
         }
     }
     
-    // Sap xep giam dan theo tong tien
+    // Sap xep giam dan theo tong tien (via Comparator)
     public List<Order> sortedByTotalDesc() {
-        ArrayList<Order> list = new ArrayList<>(orderRepository.findAll());
-        for (int i = 0; i <= list.size() - 1; i++){
-            for (int j = 0; j < list.size() - 1; j++){
-                if(calculateTotal(list.get(j)) < calculateTotal(list.get(j + 1))){
-                    Order tmp = list.get(j);
-                    list.set(j, list.get(j + 1));
-                    list.set(j + 1, tmp);
-                }
-
-            }
-        }
-         return list; 
+        List<Order> sorted = orderRepository.findAll();
+        sorted.sort((a, b) -> Double.compare(calculateTotal(b), calculateTotal(a)));
+        return sorted;
     }
 }
     
