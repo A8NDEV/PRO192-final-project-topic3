@@ -22,7 +22,7 @@ public class OrderDispatcher {
         "Search order",
         "Sorted order by total (high to low)"
     };
-    private static final String[] STATUS_OPTIONS = {"COMPLETED", "CANCELLED"};
+    private static final String[] STATUS_OPTIONS = {"PREPARING", "COMPLETED", "CANCELLED"};
     private static final String[] SEARCH_OPTIONS = {"Search by table", "Search by order ID"};
     private final OrderService orderService;
     private final MenuService menuService;
@@ -223,19 +223,26 @@ public class OrderDispatcher {
     // Function 4: show the bill and confirm before changing status.
     private void manageOrderStatus() {
         if (!showOpenOrders()) return;
-        Order order = readOrderById(true);
+        Order order = readOrderForStatusChange();
         if (order == null) return;
         console.showMessage("\nOrder details before changing status:");
         console.showOrderBill(order, orderService.calculateTotal(order));
         console.showMenu("Manage Order Status", STATUS_OPTIONS, "Back");
-        int choice = readChoiceRange("Status selection", 0, 2);
+        int choice = readChoiceRange("Status selection", 0, STATUS_OPTIONS.length);
         if (choice == -1 || choice == 0) {
             console.showMessage("No changes made.");
             return;
         }
-        OrderStatus newStatus = choice == 1 ? OrderStatus.COMPLETED : OrderStatus.CANCELLED;
+        OrderStatus newStatus;
+        if (choice == 1) {
+            newStatus = OrderStatus.PREPARING;
+        } else if (choice == 2) {
+            newStatus = OrderStatus.COMPLETED;
+        } else {
+            newStatus = OrderStatus.CANCELLED;
+        }
         if (!readYesNo("Confirm changing order " + order.getOrderId() + " to " + newStatus + "? (Y/N): ")) {
-            console.showMessage("Status unchanged. Order remains PENDING.");
+            console.showMessage("Status unchanged. Order remains " + order.getStatus() + ".");
             return;
         }
         try {
@@ -243,6 +250,27 @@ public class OrderDispatcher {
             console.showMessage("Order " + order.getOrderId() + " status changed to " + newStatus + ".");
         } catch (BusinessException e) {
             console.showError(e.getMessage());
+        }
+    }
+
+    private Order readOrderForStatusChange() {
+        int attempts = 0;
+        while (true) {
+            String id = readLine("Order ID: ");
+            Order order = orderService.findById(id);
+            String error = null;
+            if (order == null) {
+                error = "Order ID '" + id + "' does not exist. Check the ID and try again.";
+            } else if (order.getStatus() == OrderStatus.COMPLETED || order.getStatus() == OrderStatus.CANCELLED) {
+                error = "Order " + id + " is already " + order.getStatus() + " and cannot be modified.";
+            }
+            if (error == null) return order;
+            console.showError(error);
+            attempts++;
+            if (attempts >= 3) {
+                if (!continueAfterInvalid("Order ID")) return null;
+                attempts = 0;
+            }
         }
     }
 
@@ -437,10 +465,10 @@ public class OrderDispatcher {
     private boolean showOpenOrders() {
         List<Order> orders = orderService.getOpenOrders();
         if (orders.isEmpty()) {
-            console.showMessage("No PENDING orders are available.");
+            console.showMessage("No active (PENDING or PREPARING) orders are available.");
             return false;
         }
-        console.showMessage("\n----- Pending orders -----");
+        console.showMessage("\n----- Active orders (PENDING / PREPARING) -----");
         for (Order order : orders) console.showOrderSummary(order, orderService.calculateTotal(order));
         return true;
     }
