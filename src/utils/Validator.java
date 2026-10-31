@@ -4,10 +4,6 @@
  */
 package utils;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
-import java.time.format.ResolverStyle;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -17,8 +13,6 @@ import java.util.regex.Pattern;
  */
 public class Validator {
 
-    private static final String DATE_REGEX = "^\\d{2}/\\d{2}/\\d{4}$";
-    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/uuuu").withResolverStyle(ResolverStyle.STRICT);
     private static final Pattern TABLE_PATTERN = Pattern.compile("^([A-Z])(\\d+)$");
     private static final int TABLE_MAX_LENGTH = 5;
     private static final int NAME_MAX_LENGTH = 50;
@@ -61,25 +55,6 @@ public class Validator {
         }
     }
 
-        // Dùng 'uuuu' thay vì 'yyyy' thì chế độ STRICT mới chặn được ngày như 31/02
-    public static final DateTimeFormatter DATE_FORMAT
-            = DateTimeFormatter.ofPattern("dd/MM/uuuu").withResolverStyle(ResolverStyle.STRICT);
-
-    public static boolean isPositiveInt(String value) {
-        if (value == null) {
-            return false;
-        }
-        String trimmed = value.trim();
-        if (!trimmed.matches("^[0-9]+$")) {
-            return false;
-        }
-        try {
-            return Integer.parseInt(trimmed) > 0;
-        } catch (NumberFormatException e) {
-            return false; // số quá lớn, tràn int
-        }
-    }
-    
     public static boolean isConfirmed(String value) {
         if (value == null) {
             return false;
@@ -88,7 +63,7 @@ public class Validator {
         return choice.equalsIgnoreCase("y") || choice.equalsIgnoreCase("n");
     }
 
-    //phân loại validate khi nhập name
+    // Phan loai validate khi nhap name
     public static String getCustomerNameError(String value) {
         if (value == null || value.trim().isEmpty()) {
             return "Name cannot be blank.";
@@ -114,11 +89,7 @@ public class Validator {
         return null;
     }
 
-    public static boolean isValidCustomerName(String value) {
-        return getCustomerNameError(value) == null;
-    }
-
-    // SĐT: bắt đầu bằng 0 (10 số) hoặc 84 (11 số), 9 số cuối không giống hệt nhau.
+    // SDT: bat dau bang 0 (10 so) hoac 84 (11 so), 9 so cuoi khong giong het nhau.
     public static String getPhoneError(String value) {
         if (value == null || value.trim().isEmpty()) {
             return "Phone cannot be blank.";
@@ -145,24 +116,7 @@ public class Validator {
         return null;
     }
 
-    public static boolean isValidPhone(String value) {
-        return getPhoneError(value) == null;
-    }
-
-    public static boolean isValidDate(String value) {
-        if (value == null || !value.matches(DATE_REGEX)) {
-            return false;
-        }
-        try {
-            LocalDate.parse(value, DATE_FMT);
-            return true;
-        } catch (DateTimeParseException e) {
-            return false;
-        }
-    }
-
-
-    //Chuẩn hóa cách đặt tên cho table (1 chữ cái tự động in hoa và kèm theo số, ví dụ : A1, B12)
+    // Chuan hoa cach dat ten cho table (1 chu cai tu dong in hoa va kem theo so, vi du : A1, B12)
     public static String normalizeTable(String value) {
         if (value == null) {
             return null;

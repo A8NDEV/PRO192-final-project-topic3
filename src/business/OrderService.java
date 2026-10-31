@@ -2,7 +2,6 @@ package business;
 
 import java.io.IOException;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -11,25 +10,28 @@ import models.Order;
 import models.OrderItem;
 import models.OrderStatus;
 
+
 public class OrderService {
 
-    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private final OrderRepository orderRepository;
 
     public OrderService(OrderRepository orderRepository) {
         this.orderRepository = orderRepository;
     }
 
- 
+
+    private String today() {
+        LocalDate d = LocalDate.now();
+        return String.format("%02d/%02d/%d", d.getDayOfMonth(), d.getMonthValue(), d.getYear());
+    }
+
     public Order createOrder(String tableNumber, String customerName, String customerPhone) {
         ensureNoPendingOrderForTable(tableNumber);
-        String today = LocalDate.now().format(DATE_FMT);
-        Order order = new Order(orderRepository.nextId(), today, tableNumber, customerName, customerPhone);
+        Order order = new Order(orderRepository.nextId(), today(), tableNumber, customerName, customerPhone);
         orderRepository.add(order);
         persist();
         return order;
     }
-
 
     public Order createOrder(String tableNumber, String customerName, String customerPhone,
                              List<OrderItem> items) {
@@ -38,8 +40,7 @@ public class OrderService {
             throw new BusinessException("Cannot create an order without any items.");
         }
 
-        String today = LocalDate.now().format(DATE_FMT);
-        Order order = new Order(orderRepository.nextId(), today, tableNumber, customerName, customerPhone);
+        Order order = new Order(orderRepository.nextId(), today(), tableNumber, customerName, customerPhone);
         for (OrderItem item : items) {
             if (item == null || item.getMenuItem() == null || item.getQuantity() <= 0) {
                 throw new BusinessException("Every order item must have a valid menu item and a positive quantity.");
@@ -79,7 +80,6 @@ public class OrderService {
         persist();
     }
 
-    
     public void updateQuantity(String orderId, String itemId, int newQuantity) {
         if (newQuantity < 0) {
             throw new BusinessException("Quantity cannot be negative. Enter 0 to remove the item.");
@@ -117,29 +117,36 @@ public class OrderService {
     }
 
     public void changeStatus(String orderId, OrderStatus newStatus) {
-        if (newStatus != OrderStatus.COMPLETED && newStatus != OrderStatus.CANCELLED) {
-            throw new BusinessException("Order status can only be changed to COMPLETED or CANCELLED.");
+        if (newStatus != OrderStatus.PREPARING
+                && newStatus != OrderStatus.COMPLETED
+                && newStatus != OrderStatus.CANCELLED) {
+            throw new BusinessException("Order status can only be changed to PREPARING, COMPLETED, or CANCELLED.");
         }
 
         Order order = requireOrder(orderId);
-        requirePending(order);
+        if (order.getStatus() == OrderStatus.COMPLETED || order.getStatus() == OrderStatus.CANCELLED) {
+            throw new BusinessException("Order " + order.getOrderId() + " is already "
+                    + order.getStatus() + " and cannot be modified.");
+        }
+        if (order.getStatus() == newStatus) {
+            throw new BusinessException("Order " + order.getOrderId() + " is already " + newStatus + ".");
+        }
         order.setStatus(newStatus);
         persist();
     }
 
-    /** Backward-compatible cancellation method. */
     public void cancelOrder(String orderId) {
         changeStatus(orderId, OrderStatus.CANCELLED);
     }
 
     public List<Order> getOpenOrders() {
-        List<Order> pending = new ArrayList<>();
+        List<Order> open = new ArrayList<>();
         for (Order order : orderRepository.findAll()) {
-            if (order.getStatus() == OrderStatus.PENDING) {
-                pending.add(order);
+            if (order.getStatus() == OrderStatus.PENDING || order.getStatus() == OrderStatus.PREPARING) {
+                open.add(order);
             }
         }
-        return pending;
+        return open;
     }
 
     public Order findOpenOrderByTable(String tableNumber) {
@@ -148,7 +155,7 @@ public class OrderService {
         }
         String table = tableNumber.trim();
         for (Order order : orderRepository.findAll()) {
-            if (order.getStatus() == OrderStatus.PENDING
+            if ((order.getStatus() == OrderStatus.PENDING || order.getStatus() == OrderStatus.PREPARING)
                     && order.getTableNumber() != null
                     && order.getTableNumber().equalsIgnoreCase(table)) {
                 return order;
@@ -239,10 +246,14 @@ public class OrderService {
             throw new BusinessException("Cannot save orders: " + e.getMessage());
         }
     }
-
+    
+    // Sap xep giam dan theo tong tien (via Comparator)
     public List<Order> sortedByTotalDesc() {
         List<Order> sorted = orderRepository.findAll();
         sorted.sort((a, b) -> Double.compare(calculateTotal(b), calculateTotal(a)));
         return sorted;
     }
 }
+    
+
+
