@@ -2,6 +2,7 @@ package models;
 
 public enum OrderStatus {
     PENDING("Pending"),
+    PREPARING("Preparing"),
     COMPLETED("Completed"),
     CANCELLED("Cancelled");
 

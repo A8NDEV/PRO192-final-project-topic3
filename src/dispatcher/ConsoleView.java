@@ -64,9 +64,9 @@ public class ConsoleView {
 
     // ===== Hiển thị tóm tắt đơn hàng Order =====
     public void showOrderSummary(Order order, double total) {
-        System.out.println(String.format("%-6s | %-10s | Table %-5s | %-25s | %2d item(s) | %,.0f",
+        System.out.println(String.format("%-6s | %-10s | Table %-5s | %-10s | %-25s | %2d item(s) | %,.0f",
                 order.getOrderId(), order.getOrderDate(), order.getTableNumber(),
-                order.getCustomerName(), order.getItemsList().size(), total));
+                order.getStatus(), order.getCustomerName(), order.getItemsList().size(), total));
     }
 
     // Hien thi hoa don tam truoc khi luu order.
