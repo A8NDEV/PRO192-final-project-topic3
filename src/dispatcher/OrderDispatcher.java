@@ -202,11 +202,15 @@ public class OrderDispatcher {
         return 0;
     }
 
-    // Function 3 is retained for the teammate's existing quantity-change implementation.
+    // Function 3: change item quantity (or remove item if quantity is 0)
     private void changeQuantity() {
         if (!showOpenOrders()) return;
         Order order = readOrderById(true);
         if (order == null) return;
+
+        console.showMessage("\nCurrent items in order " + order.getOrderId() + ":");
+        console.showOrderBill(order, orderService.calculateTotal(order));
+
         String itemId = readItemIdInOrder(order);
         if (itemId == null) return;
         int quantity = readNonNegativeQuantity("New quantity (0 removes the item): ");
@@ -215,6 +219,12 @@ public class OrderDispatcher {
             orderService.updateQuantity(order.getOrderId(), itemId, quantity);
             console.showMessage(quantity == 0 ? "Item removed from order " + order.getOrderId() + "."
                     : "Item quantity updated to " + quantity + ".");
+
+            Order updatedOrder = orderService.findById(order.getOrderId());
+            if (updatedOrder != null) {
+                console.showMessage("\nUpdated order bill:");
+                console.showOrderBill(updatedOrder, orderService.calculateTotal(updatedOrder));
+            }
         } catch (BusinessException e) {
             console.showError(e.getMessage());
         }
@@ -441,7 +451,7 @@ public class OrderDispatcher {
     private int readChoiceRange(String field, int min, int max) {
         int attempts = 0;
         while (true) {
-            String raw = readLine("Choose: ");
+            String raw = (attempts == 0) ? scanner.nextLine().trim() : readLine("Choose: ");
             try {
                 int choice = Integer.parseInt(raw);
                 if (choice >= min && choice <= max) return choice;
