@@ -1,4 +1,4 @@
-package dispatcher;
+package utils;
 
 import java.util.List;
 import models.MenuItem;
@@ -12,7 +12,7 @@ import models.Order;
  * Lớp hiển thị Console dùng chung cho toàn bộ ứng dụng (Menu, Order, Thông báo).
  * Nội dung thông báo do nơi gọi truyền vào, view chỉ đảm nhiệm in ra màn hình.
  */
-public class ConsoleView {
+public class OutputHandler {
 
     // ===== In thông báo chung =====
     public void showMessage(String message) {
@@ -115,3 +115,4 @@ public class ConsoleView {
         System.out.println("====================================================");
     }
 }
+

@@ -1,6 +1,7 @@
 package dispatcher;
 
 import java.util.Scanner;
+import utils.OutputHandler;
 
 /**
  *
@@ -16,7 +17,7 @@ public class AppDispatcher {
     private final Scanner scanner;
     private final MenuDispatcher menuDispatcher;
     private final OrderDispatcher orderDispatcher;
-    private final ConsoleView console = new ConsoleView();
+    private final OutputHandler console = new OutputHandler();
 
     public AppDispatcher(Scanner scanner, MenuDispatcher menuDispatcher, OrderDispatcher orderDispatcher) {
         this.scanner = scanner;

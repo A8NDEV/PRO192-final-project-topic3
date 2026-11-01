@@ -1,8 +1,7 @@
 package dispatcher;
 
-import business.BusinessException;
-import business.MenuService;
-import business.OrderService;
+import business.MenuManager;
+import business.OrderManager;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -11,6 +10,7 @@ import models.Order;
 import models.OrderItem;
 import models.OrderStatus;
 import utils.InputHandler;
+import utils.OutputHandler;
 import utils.Validator;
 
 public class OrderDispatcher {
@@ -24,14 +24,14 @@ public class OrderDispatcher {
     };
     private static final String[] STATUS_OPTIONS = {"PREPARING", "COMPLETED", "CANCELLED"};
     private static final String[] SEARCH_OPTIONS = {"Search by table", "Search by order ID"};
-    private final OrderService orderService;
-    private final MenuService menuService;
+    private final OrderManager orderManager;
+    private final MenuManager menuManager;
     private final Scanner scanner;
-    private final ConsoleView console = new ConsoleView();
+    private final OutputHandler console = new OutputHandler();
 
-    public OrderDispatcher(OrderService orderService, MenuService menuService, Scanner scanner) {
-        this.orderService = orderService;
-        this.menuService = menuService;
+    public OrderDispatcher(OrderManager orderManager, MenuManager menuManager, Scanner scanner) {
+        this.orderManager = orderManager;
+        this.menuManager = menuManager;
         this.scanner = scanner;
     }
 
@@ -63,7 +63,7 @@ public class OrderDispatcher {
     private void createOrder() {
         String table = readTable();
         if (table == null) return;
-        Order existing = orderService.findOpenOrderByTable(table);
+        Order existing = orderManager.findOpenOrderByTable(table);
         if (existing != null) {
             console.showError("Table " + table + " already has PENDING order " + existing.getOrderId()
                     + ". Please add items to that order instead of creating a duplicate.");
@@ -77,7 +77,7 @@ public class OrderDispatcher {
         List<OrderItem> draft = new ArrayList<>();
         while (true) {
             console.showMessage("\nAvailable menu items:");
-            console.showAvailableTable(menuService.getAvailableItems());
+            console.showAvailableTable(menuManager.getAvailableItems());
             MenuItem item = readAvailableMenuItem();
             if (item == null) return;
             int quantity = readPositiveQuantity("Quantity for " + item.getItemName() + ": ");
@@ -100,10 +100,10 @@ public class OrderDispatcher {
             }
             if (choice == 1) {
                 try {
-                    Order order = orderService.createOrder(table, name, phone, draft);
+                    Order order = orderManager.createOrder(table, name, phone, draft);
                     console.showMessage("Order " + order.getOrderId() + " created successfully on "
                             + order.getOrderDate() + ".");
-                } catch (BusinessException e) {
+                } catch (IllegalArgumentException e) {
                     console.showError(e.getMessage());
                 }
                 return;
@@ -120,7 +120,7 @@ public class OrderDispatcher {
         while (true) {
             console.showMessage("\nEdit items: enter an item ID to add/change, or 0 to finish editing.");
             console.showDraftItems(draft);
-            console.showAvailableTable(menuService.getAvailableItems());
+            console.showAvailableTable(menuManager.getAvailableItems());
             String id = readLine("Menu item ID (0 to finish): ");
             if (id == null) return false;
             if (id.equals("0")) return true;
@@ -129,7 +129,7 @@ public class OrderDispatcher {
                 if (!continueAfterInvalid("menu item ID")) return false;
                 continue;
             }
-            MenuItem item = menuService.findById(id);
+            MenuItem item = menuManager.findById(id);
             if (item == null || !item.isStatus()) {
                 console.showError(item == null ? "Menu item ID '" + id + "' does not exist. Check the ID in the menu."
                         : "Menu item '" + id + "' is unavailable. Choose an available item.");
@@ -171,23 +171,23 @@ public class OrderDispatcher {
         Order order = readOrderById(true);
         if (order == null) return;
         console.showMessage("\nCurrent items in order " + order.getOrderId() + ":");
-        console.showOrderBill(order, orderService.calculateTotal(order));
+        console.showOrderBill(order, orderManager.calculateTotal(order));
         while (true) {
             console.showMessage("\nAvailable menu items:");
-            console.showAvailableTable(menuService.getAvailableItems());
+            console.showAvailableTable(menuManager.getAvailableItems());
             MenuItem item = readAvailableMenuItem();
             if (item == null) return;
             int oldQuantity = getQuantity(order, item.getItemId());
             int addQuantity = readPositiveQuantity("Quantity to add: ");
             if (addQuantity < 0) return;
             try {
-                orderService.addItem(order.getOrderId(), item, addQuantity);
+                orderManager.addItem(order.getOrderId(), item, addQuantity);
                 int newQuantity = oldQuantity + addQuantity;
                 console.showMessage("Added " + addQuantity + " of " + item.getItemName()
                         + ". Quantity changed from " + oldQuantity + " to " + newQuantity + ".");
-                order = orderService.findById(order.getOrderId());
-                console.showOrderBill(order, orderService.calculateTotal(order));
-            } catch (BusinessException e) {
+                order = orderManager.findById(order.getOrderId());
+                console.showOrderBill(order, orderManager.calculateTotal(order));
+            } catch (IllegalArgumentException e) {
                 console.showError(e.getMessage());
                 return;
             }
@@ -209,23 +209,23 @@ public class OrderDispatcher {
         if (order == null) return;
 
         console.showMessage("\nCurrent items in order " + order.getOrderId() + ":");
-        console.showOrderBill(order, orderService.calculateTotal(order));
+        console.showOrderBill(order, orderManager.calculateTotal(order));
 
         String itemId = readItemIdInOrder(order);
         if (itemId == null) return;
         int quantity = readNonNegativeQuantity("New quantity (0 removes the item): ");
         if (quantity < 0) return;
         try {
-            orderService.updateQuantity(order.getOrderId(), itemId, quantity);
+            orderManager.updateQuantity(order.getOrderId(), itemId, quantity);
             console.showMessage(quantity == 0 ? "Item removed from order " + order.getOrderId() + "."
                     : "Item quantity updated to " + quantity + ".");
 
-            Order updatedOrder = orderService.findById(order.getOrderId());
+            Order updatedOrder = orderManager.findById(order.getOrderId());
             if (updatedOrder != null) {
                 console.showMessage("\nUpdated order bill:");
-                console.showOrderBill(updatedOrder, orderService.calculateTotal(updatedOrder));
+                console.showOrderBill(updatedOrder, orderManager.calculateTotal(updatedOrder));
             }
-        } catch (BusinessException e) {
+        } catch (IllegalArgumentException e) {
             console.showError(e.getMessage());
         }
     }
@@ -236,7 +236,7 @@ public class OrderDispatcher {
         Order order = readOrderForStatusChange();
         if (order == null) return;
         console.showMessage("\nOrder details before changing status:");
-        console.showOrderBill(order, orderService.calculateTotal(order));
+        console.showOrderBill(order, orderManager.calculateTotal(order));
         console.showMenu("Manage Order Status", STATUS_OPTIONS, "Back");
         int choice = readChoiceRange("Status selection", 0, STATUS_OPTIONS.length);
         if (choice == -1 || choice == 0) {
@@ -256,9 +256,9 @@ public class OrderDispatcher {
             return;
         }
         try {
-            orderService.changeStatus(order.getOrderId(), newStatus);
+            orderManager.changeStatus(order.getOrderId(), newStatus);
             console.showMessage("Order " + order.getOrderId() + " status changed to " + newStatus + ".");
-        } catch (BusinessException e) {
+        } catch (IllegalArgumentException e) {
             console.showError(e.getMessage());
         }
     }
@@ -267,7 +267,7 @@ public class OrderDispatcher {
         int attempts = 0;
         while (true) {
             String id = readLine("Order ID: ");
-            Order order = orderService.findById(id);
+            Order order = orderManager.findById(id);
             String error = null;
             if (order == null) {
                 error = "Order ID '" + id + "' does not exist. Check the ID and try again.";
@@ -288,7 +288,7 @@ public class OrderDispatcher {
         int attempts = 0;
         while (true) {
             String id = readLine("Order ID: ");
-            Order order = orderService.findById(id);
+            Order order = orderManager.findById(id);
             String error = null;
             if (order == null) error = "Order ID '" + id + "' does not exist. Check the ID and try again.";
             else if (mustBePending && order.getStatus() != OrderStatus.PENDING)
@@ -323,7 +323,7 @@ public class OrderDispatcher {
         int attempts = 0;
         while (true) {
             String id = readLine("Menu item ID: ");
-            MenuItem item = menuService.findById(id);
+            MenuItem item = menuManager.findById(id);
             String error = null;
             if (item == null) error = "Menu item ID '" + id + "' does not exist. Check the menu and try again.";
             else if (!item.isStatus()) error = "Menu item '" + id + "' is currently unavailable. Choose an available item.";
@@ -473,13 +473,13 @@ public class OrderDispatcher {
     }
 
     private boolean showOpenOrders() {
-        List<Order> orders = orderService.getOpenOrders();
+        List<Order> orders = orderManager.getOpenOrders();
         if (orders.isEmpty()) {
             console.showMessage("No active (PENDING or PREPARING) orders are available.");
             return false;
         }
         console.showMessage("\n----- Active orders (PENDING / PREPARING) -----");
-        for (Order order : orders) console.showOrderSummary(order, orderService.calculateTotal(order));
+        for (Order order : orders) console.showOrderSummary(order, orderManager.calculateTotal(order));
         return true;
     }
 
@@ -495,29 +495,29 @@ public class OrderDispatcher {
 
     private void searchByTable() {
         String keyword = InputHandler.readNonBlank(scanner, "Enter Table to search: ");
-        List<Order> found = orderService.searchByTable(keyword);
+        List<Order> found = orderManager.searchByTable(keyword);
         if (found.isEmpty()) {
             console.showMessage("No orders found for table " + keyword + ".");
             return;
         }
         console.showMessage("\n----- Orders of table " + keyword + " -----");
-        for (Order order : found) console.showOrderSummary(order, orderService.calculateTotal(order));
+        for (Order order : found) console.showOrderSummary(order, orderManager.calculateTotal(order));
     }
 
     private void searchByOrderId() {
         String id = readLine("Order ID to search: ");
-        Order order = orderService.findById(id);
+        Order order = orderManager.findById(id);
         if (order == null) console.showError("Order ID '" + id + "' does not exist.");
-        else console.showOrderBill(order, orderService.calculateTotal(order));
+        else console.showOrderBill(order, orderManager.calculateTotal(order));
     }
 
     private void sortedOrders() {
-        List<Order> sorted = orderService.sortedByTotalDesc();
+        List<Order> sorted = orderManager.sortedByTotalDesc();
         if (sorted.isEmpty()) {
             console.showMessage("No orders available.");
             return;
         }
         console.showMessage("\n----- Orders sorted by total (high to low) -----");
-        for (Order order : sorted) console.showOrderSummary(order, orderService.calculateTotal(order));
+        for (Order order : sorted) console.showOrderSummary(order, orderManager.calculateTotal(order));
     }
 }

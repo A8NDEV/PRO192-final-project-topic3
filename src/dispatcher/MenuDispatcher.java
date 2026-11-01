@@ -1,13 +1,13 @@
 package dispatcher;
 
-import business.BusinessException;
-import business.MenuService;
-import business.OrderService;
+import business.MenuManager;
+import business.OrderManager;
 import java.io.IOException;
 import java.util.List;
 import java.util.Scanner;
 import models.MenuItem;
 import utils.InputHandler;
+import utils.OutputHandler;
 
 /**
  *
@@ -24,15 +24,15 @@ public class MenuDispatcher {
     };
     private static final String[] SEARCH_OPTIONS = {"Search by ID", "Search by Name"};
 
-    private final MenuService menuService;
-    private final ConsoleView console = new ConsoleView();
+    private final MenuManager menuManager;
+    private final OutputHandler console = new OutputHandler();
     private final Scanner scanner;
-    private final OrderService orderService;
+    private final OrderManager orderManager;
 
-    public MenuDispatcher(MenuService menuService, Scanner scanner, OrderService orderService) {
-        this.menuService = menuService;
+    public MenuDispatcher(MenuManager menuManager, Scanner scanner, OrderManager orderManager) {
+        this.menuManager = menuManager;
         this.scanner = scanner;
-        this.orderService = orderService;
+        this.orderManager = orderManager;
     }
 
     public void run() {
@@ -76,7 +76,7 @@ public class MenuDispatcher {
         String id;
         while (true) {
             id = InputHandler.readNonBlank(scanner, "Enter item ID: ");
-            if (menuService.findById(id) != null) {
+            if (menuManager.findById(id) != null) {
                 console.showError("Item ID '" + id + "' already exists! Please enter a different ID.");
                 continue;
             }
@@ -91,10 +91,10 @@ public class MenuDispatcher {
         MenuItem newItem = new MenuItem(id, name, category, price, status);
 
         try {
-            menuService.addItem(newItem);
-            menuService.save();
+            menuManager.addItem(newItem);
+            menuManager.save();
             console.showMessage("Item added successfully!");
-        } catch (BusinessException e) {
+        } catch (IllegalArgumentException e) {
             console.showError(e.getMessage());
         } catch (IOException e) {
             console.showError("Error saving file: " + e.getMessage());
@@ -103,7 +103,7 @@ public class MenuDispatcher {
 
     private void updateItem() {
         String id = InputHandler.readNonBlank(scanner, "Enter item ID to update: ");
-        MenuItem currentItem = menuService.findById(id);
+        MenuItem currentItem = menuManager.findById(id);
 
         if (currentItem == null) {
             console.showError("Item ID '" + id + "' not found!");
@@ -134,10 +134,10 @@ public class MenuDispatcher {
         MenuItem updatedItem = new MenuItem(currentItem.getItemId(), newName, newCategory, newPrice, newStatus);
 
         try {
-            menuService.updateItem(updatedItem);
-            menuService.save();
+            menuManager.updateItem(updatedItem);
+            menuManager.save();
             console.showMessage("Item updated successfully!");
-        } catch (BusinessException e) {
+        } catch (IllegalArgumentException e) {
             console.showError(e.getMessage());
         } catch (IOException e) {
             console.showError("Error saving file: " + e.getMessage());
@@ -156,7 +156,7 @@ public class MenuDispatcher {
         switch (choice) {
             case 1:
                 String id = InputHandler.readNonBlank(scanner, "Enter Item ID to search: ");
-                MenuItem item = menuService.findById(id);
+                MenuItem item = menuManager.findById(id);
                 if (item != null) {
                     console.showItem(item);
                 } else {
@@ -165,7 +165,7 @@ public class MenuDispatcher {
                 break;
             case 2:
                 String name = InputHandler.readNonBlank(scanner, "Enter Item Name to search: ");
-                List<MenuItem> list = menuService.findByName(name);
+                List<MenuItem> list = menuManager.findByName(name);
                 if (list.isEmpty()) {
                     console.showMessage("Item not found.");
                 } else {
@@ -182,11 +182,11 @@ public class MenuDispatcher {
     }
 
     private void displayAvailable() {
-        if (menuService.getMenuList().isEmpty()) {
+        if (menuManager.getMenuList().isEmpty()) {
             console.showMessage("No items available.");
             return;
         }
-        List<MenuItem> available = menuService.getAvailableItems();
+        List<MenuItem> available = menuManager.getAvailableItems();
         if (available.isEmpty()) {
             console.showMessage("No items are currently available.");
             return;
@@ -196,11 +196,11 @@ public class MenuDispatcher {
     }
 
     private void displayItemsNoOrder() {
-        if (orderService == null) {
+        if (orderManager == null) {
             console.showError("Order service is not configured.");
             return;
         }
-        List<MenuItem> items = menuService.getUnorderedItems(orderService.getAllOrders());
+        List<MenuItem> items = orderManager.getUnorderedItems();
         if (items.isEmpty()) {
             console.showMessage("All items have been ordered.");
             return;

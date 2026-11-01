@@ -1,18 +1,13 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
-
-import business.MenuRepository;
-import business.MenuService;
-import business.OrderRepository;
-import business.OrderService;
+import business.MenuManager;
+import business.OrderManager;
 import dispatcher.AppDispatcher;
 import dispatcher.MenuDispatcher;
 import dispatcher.OrderDispatcher;
 import java.util.Scanner;
 
 /**
+ * Điểm khởi chạy: tạo các đối tượng và nối (wiring) chúng lại với nhau bằng
+ * hàm tạo (Dependency Injection), sau đó chạy menu chính.
  *
  * @author ASUS
  */
@@ -21,16 +16,14 @@ public class Main {
         String menuFilePath = "data/menu.txt";
         String orderFilePath = "data/orders.txt";
 
-        MenuRepository menuRepository = new MenuRepository(menuFilePath);
-        MenuService menuService = new MenuService(menuRepository);
-
-        OrderRepository orderRepository = new OrderRepository(orderFilePath, menuRepository);
-        OrderService orderService = new OrderService(orderRepository);
+        // MenuManager phải tạo trước vì OrderManager cần tra món khi đọc file order.
+        MenuManager menuManager = new MenuManager(menuFilePath);
+        OrderManager orderManager = new OrderManager(orderFilePath, menuManager);
 
         Scanner scanner = new Scanner(System.in);
-        
-        MenuDispatcher menuDispatcher = new MenuDispatcher(menuService, scanner, orderService);
-        OrderDispatcher orderDispatcher = new OrderDispatcher(orderService, menuService, scanner);
+
+        MenuDispatcher menuDispatcher = new MenuDispatcher(menuManager, scanner, orderManager);
+        OrderDispatcher orderDispatcher = new OrderDispatcher(orderManager, menuManager, scanner);
 
         AppDispatcher appDispatcher = new AppDispatcher(scanner, menuDispatcher, orderDispatcher);
         appDispatcher.run();
