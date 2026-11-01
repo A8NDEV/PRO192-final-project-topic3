@@ -6,14 +6,16 @@ package dispatcher;
 
 import business.MenuManager;
 import business.OrderManager;
-import java.util.Scanner;
-import utils.OutputHandler;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 import models.MenuItem;
 import models.Order;
 import models.OrderItem;
+import models.OrderStatus;
 import utils.InputHandler;
+import utils.OutputHandler;
+import utils.Validator;
 
 public class OrderDispatcher {
 
@@ -62,7 +64,7 @@ public class OrderDispatcher {
                     changeQuantity();
                     break;
                 case 4:
-                    manageOrderStatus();
+                    changeOrderStatus();
                     break;
                 case 5:
                     searchOrder();
@@ -116,10 +118,12 @@ public class OrderDispatcher {
                 try {
                     quantity = Integer.parseInt(value);
                     if (quantity <= 0) {
-                        console.showError( "Quantity must be greater than 0.");
-                    } else {validQuantity = true;}
+                        console.showError("Quantity must be greater than 0.");
+                    } else {
+                        validQuantity = true;
+                    }
                 } catch (NumberFormatException e) {
-                    console.showError( "Quantity must be a positive integer.");
+                    console.showError("Quantity must be a positive integer.");
                 }
             }
 
@@ -144,7 +148,7 @@ public class OrderDispatcher {
         }
 
         console.showDraftBill(tableNumber, customerName, customerPhone, items);
-        boolean confirmed = InputHandler.readConfirmed( scanner, "Confirm and create this order? (Y/N): ");
+        boolean confirmed = InputHandler.readConfirmed(scanner, "Confirm and create this order? (Y/N): ");
 
         if (!confirmed) {
             console.showMessage("Order creation cancelled.");
@@ -161,12 +165,80 @@ public class OrderDispatcher {
     }
 
     private void addItem() {
+        List<Order> openOrders = orderManager.getOpenOrders();
+        if (openOrders.isEmpty()) {
+            console.showMessage("There are no pending orders to update.");
+            return;
+        }
+
+        console.showMessage("\n===== Pending Orders =====");
+        for (Order order : openOrders) {
+            console.showOrderSummary(order, orderManager.calculateTotal(order));
+        }
+
+        String orderId = InputHandler.readNonBlank(scanner, "Enter Order ID: ");
+        Order order = orderManager.findById(orderId);
+
+        if (order == null) {
+            console.showError("Order ID '" + orderId + "' does not exist.");
+            return;
+        }
+
+        if (!openOrders.contains(order)) {
+            console.showError("Order '" + orderId + "' is not pending and cannot be modified.");
+            return;
+        }
+
+        console.showOrderBill(order, orderManager.calculateTotal(order));
+        while (true) {
+            console.showAvailableHeader();
+            List<MenuItem> availableItems = menuManager.getAvailableItems();
+            console.showAvailableTable(availableItems);
+            String itemId = InputHandler.readNonBlank(scanner, "Enter Item ID: ");
+            MenuItem menuItem = menuManager.findById(itemId);
+
+            if (menuItem == null || !menuItem.isStatus()) {
+                console.showError( "Item ID '" + itemId + "' does not exist or is currently unavailable.");
+                continue;
+            }
+
+            int quantity = 0;
+            boolean validQuantity = false;
+            while (!validQuantity) {
+                System.out.print("Enter quantity: ");
+                String value = scanner.nextLine().trim();
+
+                try {
+                    quantity = Integer.parseInt(value);
+                    if (quantity <= 0) {
+                        console.showError( "Quantity must be greater than 0.");
+                    } else { validQuantity = true;}
+
+                } catch (NumberFormatException e) {
+                    console.showError( "Quantity must be a positive integer.");
+                }
+            }
+
+            try {
+                orderManager.addItem(orderId, menuItem, quantity);
+                console.showMessage("Item added successfully.");
+                console.showOrderBill(order, orderManager.calculateTotal(order));
+            } catch (IllegalArgumentException e) {
+                console.showError(e.getMessage());
+                return;
+            }
+
+            boolean addAnother = InputHandler.readConfirmed(scanner, "Do you want to add another item? (Y/N): ");
+            if (!addAnother) {
+                break;
+            }
+        }
     }
 
     private void changeQuantity() {
     }
 
-    private void manageOrderStatus() {
+    private void changeOrderStatus() {
     }
 
     private void searchOrder() {
