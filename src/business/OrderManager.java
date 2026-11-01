@@ -184,6 +184,19 @@ public class OrderManager {
     }
 
     private void load() {
+        List<String> lines = FileHandler.readFile(filePath);
+
+        for (String line : lines) {
+            Order order = parse(line);
+
+            if (order == null) {
+                System.out.println("Skipping invalid order line: " + line);
+                continue;
+            }
+
+            orders.add(order);
+            updateCounter(order.getOrderId());
+        }
     }
 
     private String format(Order order) {
