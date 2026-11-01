@@ -5,6 +5,8 @@
 package business;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -31,10 +33,11 @@ public class OrderManager {
     public OrderManager(String filePath, MenuManager menuManager) {
         this.filePath = filePath;
         this.menuManager = menuManager;
+        load();
     }
 
     public Order createOrder(String tableNumber, String customerName, String customerPhone,
-                             List<OrderItem> items) {
+            List<OrderItem> items) {
         return null;
     }
 
@@ -56,15 +59,38 @@ public class OrderManager {
     }
 
     public Order findById(String orderId) {
+        if (orderId == null) {
+            return null;
+        }
+        for (Order order : orders) {
+            if (order.getOrderId().equalsIgnoreCase(orderId)) {
+                return order;
+            }
+        }
         return null;
     }
 
     public List<Order> searchByTable(String keyword) {
-        return Collections.emptyList();
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
+        String lowerKey = keyword.trim().toLowerCase();
+        List<Order> result = new ArrayList<>();
+        for (Order order : orders) {
+            if (order != null && order.getTableNumber() != null
+                    && order.getTableNumber().toLowerCase().contains(lowerKey)) {
+                result.add(order);
+            }
+        }
+        return result;
     }
 
     public double calculateTotal(Order order) {
-        return 0;
+        double total = 0;
+        for (OrderItem item : order.getItemsList()) {
+            total += item.getMenuItem().getPrice() * item.getQuantity();
+        }
+        return total;
     }
 
     public List<Order> getAllOrders() {
@@ -80,19 +106,71 @@ public class OrderManager {
     }
 
     public void save() throws IOException {
+        List<String> lines = new ArrayList<>();
+        for (Order order : orders) {
+            lines.add(format(order));
+        }
+        FileHandler.writeFile(filePath, lines);
     }
 
     private void load() {
+        for (String line : FileHandler.readFile(filePath)) {
+            Order order = parse(line);
+            if (order == null) {
+                System.out.println("Skip invalid order line: " + line);
+                continue;
+            }
+            orders.add(order);
+            updateCounter(order.getOrderId());
+        }
     }
 
     private String format(Order order) {
-        return "";
+        StringBuilder items = new StringBuilder();
+        for (OrderItem oi : order.getItemsList()) {
+            if (items.length() > 0) {
+                items.append(",");
+            }
+            items.append(oi.getMenuItem().getItemId()).append(":").append(oi.getQuantity());
+        }
+        return order.getOrderId() + "|" + order.getOrderDate() + "|" + order.getTableNumber()
+                + "|" + order.getCustomerName() + "|" + order.getCustomerPhone()
+                + "|" + order.getStatus().name() + "|" + items.toString();
     }
 
     private Order parse(String line) {
-        return null;
+        try {
+            String[] p = line.split(SEP, -1);
+            if (p.length != FIELD_COUNT) {
+                return null;
+            }
+            Order order = new Order(p[0], p[1], p[2], p[3], p[4]);
+            order.setStatus(OrderStatus.valueOf(p[5]));
+            if (!p[6].isEmpty()) {
+                for (String entry : p[6].split(",")) {
+                    String[] kv = entry.split(":");
+                    MenuItem menuItem = menuManager.findById(kv[0]);
+                    if (menuItem == null) {
+                        System.out.println("Skipping item " + kv[0] + " in order " + p[0]
+                                + ": not in menu.");
+                        continue;
+                    }
+                    order.getItemsList().add(new OrderItem(menuItem, Integer.parseInt(kv[1])));
+                }
+            }
+            return order;
+        } catch (RuntimeException e) {
+            return null;
+        }
     }
 
     private void updateCounter(String orderId) {
+        try {
+            int number = Integer.parseInt(orderId.substring(1));
+            if (number + 1 > counter) {
+                counter = number + 1;
+            }
+        } catch (RuntimeException e) {
+        }
     }
 }

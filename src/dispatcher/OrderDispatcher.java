@@ -6,7 +6,12 @@ package dispatcher;
 
 import business.MenuManager;
 import business.OrderManager;
+import models.Order;
+
+import java.util.List;
 import java.util.Scanner;
+
+import utils.InputHandler;
 import utils.OutputHandler;
 
 public class OrderDispatcher {
@@ -86,6 +91,52 @@ public class OrderDispatcher {
     }
 
     private void searchOrder() {
+        int choice = -1;
+        do {
+            console.showMenu("Search Order: ", SEARCH_OPTIONS, "Back");
+            try {
+                choice = Integer.parseInt(scanner.nextLine().trim());
+            } catch (NumberFormatException e) {
+                console.showMessage("Value must be an integer.");
+                continue;
+            }
+            switch (choice) {
+                case 1:
+                    searchByTable();
+                    break;
+                case 2:
+                    searchByOrderId();
+                    break;
+                case 0:
+                    break;
+                default:
+                    console.showMessage("CChoose 0, 1, or 2..");
+                    break;
+            }
+        } while (choice != 0);
+    }
+
+    private void searchByTable() {
+        String keyword = InputHandler.readNonBlank(scanner, "Enter table number: ");
+        List<Order> found = orderManager.searchByTable(keyword);
+        if (found.isEmpty()) {
+            console.showError("No orders found for table '" + keyword + "'.");
+            return;
+        }
+        console.showMessage("----- Orders of table " + keyword + " -----");
+        for (Order order : found) {
+            console.showOrderSummary(order, orderManager.calculateTotal(order));
+        }
+    }
+
+    private void searchByOrderId() {
+        String orderId = InputHandler.readNonBlank(scanner, "Enter order ID: ");
+        Order order = orderManager.findById(orderId);
+        if (order == null) {
+            console.showError("Order '" + orderId + "' does not exist.");
+            return;
+        }
+        console.showOrderBill(order, orderManager.calculateTotal(order));
     }
 
     private void sortedOrders() {
