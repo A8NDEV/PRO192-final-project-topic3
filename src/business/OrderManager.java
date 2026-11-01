@@ -187,15 +187,16 @@ public class OrderManager {
 
         if (order.getStatus() == OrderStatus.COMPLETED
                 || order.getStatus() == OrderStatus.CANCELLED) {
-            throw new IllegalArgumentException("Order '" + orderId + "' is already " + order.getStatus() + " and cannot change status again.");
+            throw new IllegalArgumentException(
+                    "Order '" + orderId + "' is already " + order.getStatus() + " and cannot change status again.");
         }
 
         if (newStatus == OrderStatus.PENDING) {
-            throw new IllegalArgumentException( "Cannot change an order back to PENDING.");
+            throw new IllegalArgumentException("Cannot change an order back to PENDING.");
         }
 
         if (order.getStatus() == newStatus) {
-            throw new IllegalArgumentException( "Order is already in " + newStatus + " status.");
+            throw new IllegalArgumentException("Order is already in " + newStatus + " status.");
         }
 
         OrderStatus oldStatus = order.getStatus();
@@ -206,7 +207,7 @@ public class OrderManager {
         } catch (IOException e) {
             order.setStatus(oldStatus);
 
-            throw new IllegalArgumentException( "Cannot save the order status: " + e.getMessage());
+            throw new IllegalArgumentException("Cannot save the order status: " + e.getMessage());
         }
     }
 
@@ -255,7 +256,7 @@ public class OrderManager {
     }
 
     public List<Order> getAllOrders() {
-        return Collections.emptyList();
+        return new ArrayList<>(orders);
     }
 
     public List<Order> sortedByTotalDesc() {
