@@ -53,10 +53,11 @@ public class OrderManager {
         Order existingOrder = findOpenOrderByTable(tableNumber);
 
         if (existingOrder != null) {
-            throw new IllegalArgumentException("Table " + tableNumber + " already has an open order: " + existingOrder.getOrderId());
+            throw new IllegalArgumentException(
+                    "Table " + tableNumber + " already has an open order: " + existingOrder.getOrderId());
         }
 
-        if (items == null || items.isEmpty()) { 
+        if (items == null || items.isEmpty()) {
             throw new IllegalArgumentException("An order must contain at least one item.");
         }
 
@@ -72,7 +73,8 @@ public class OrderManager {
             MenuItem menuItem = menuManager.findById(item.getMenuItem().getItemId());
 
             if (menuItem == null || !menuItem.isStatus()) {
-                throw new IllegalArgumentException("Menu item " + item.getMenuItem().getItemId() + " does not exist or is currently unavailable.");
+                throw new IllegalArgumentException(
+                        "Menu item " + item.getMenuItem().getItemId() + " does not exist or is currently unavailable.");
             }
         }
 
@@ -91,7 +93,7 @@ public class OrderManager {
             MenuItem menuItem = menuManager.findById(
                     item.getMenuItem().getItemId());
 
-            order.getItemsList().add( new OrderItem(menuItem, item.getQuantity()));
+            order.getItemsList().add(new OrderItem(menuItem, item.getQuantity()));
         }
 
         orders.add(order);
@@ -108,7 +110,7 @@ public class OrderManager {
         Order order = findById(orderId);
 
         if (order == null) {
-            throw new IllegalArgumentException( "Order ID '" + orderId + "' does not exist.");
+            throw new IllegalArgumentException("Order ID '" + orderId + "' does not exist.");
         }
 
         if (order.getStatus() != OrderStatus.PENDING) {
@@ -122,7 +124,8 @@ public class OrderManager {
         MenuItem existingMenuItem = menuManager.findById(menuItem.getItemId());
 
         if (existingMenuItem == null || !existingMenuItem.isStatus()) {
-            throw new IllegalArgumentException( "Menu item '" + menuItem.getItemId() + "' does not exist or is currently unavailable.");
+            throw new IllegalArgumentException(
+                    "Menu item '" + menuItem.getItemId() + "' does not exist or is currently unavailable.");
         }
 
         if (quantity <= 0) {
@@ -159,7 +162,7 @@ public class OrderManager {
                 existingItem.setQuantity(oldQuantity);
             }
 
-            throw new IllegalArgumentException( "Cannot save the updated order: " + e.getMessage());
+            throw new IllegalArgumentException("Cannot save the updated order: " + e.getMessage());
         }
     }
 
@@ -167,6 +170,44 @@ public class OrderManager {
     }
 
     public void changeStatus(String orderId, OrderStatus newStatus) {
+
+        if (orderId == null || orderId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Order ID cannot be empty.");
+        }
+
+        Order order = findById(orderId);
+
+        if (order == null) {
+            throw new IllegalArgumentException("Order ID '" + orderId + "' does not exist.");
+        }
+
+        if (newStatus == null) {
+            throw new IllegalArgumentException("New order status cannot be empty.");
+        }
+
+        if (order.getStatus() == OrderStatus.COMPLETED
+                || order.getStatus() == OrderStatus.CANCELLED) {
+            throw new IllegalArgumentException("Order '" + orderId + "' is already " + order.getStatus() + " and cannot change status again.");
+        }
+
+        if (newStatus == OrderStatus.PENDING) {
+            throw new IllegalArgumentException( "Cannot change an order back to PENDING.");
+        }
+
+        if (order.getStatus() == newStatus) {
+            throw new IllegalArgumentException( "Order is already in " + newStatus + " status.");
+        }
+
+        OrderStatus oldStatus = order.getStatus();
+        order.setStatus(newStatus);
+
+        try {
+            save();
+        } catch (IOException e) {
+            order.setStatus(oldStatus);
+
+            throw new IllegalArgumentException( "Cannot save the order status: " + e.getMessage());
+        }
     }
 
     public List<Order> getOpenOrders() {
