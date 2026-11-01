@@ -8,19 +8,25 @@ import business.MenuManager;
 import business.OrderManager;
 import java.util.Scanner;
 import utils.OutputHandler;
+import java.util.ArrayList;
+import java.util.List;
+import models.MenuItem;
+import models.Order;
+import models.OrderItem;
+import utils.InputHandler;
 
 public class OrderDispatcher {
 
     private static final String[] ORDER_OPTIONS = {
-        "Create new order for a table",
-        "Add item to existing order",
-        "Change item quantity",
-        "Change order status",
-        "Search order",
-        "Sorted order by total (high to low)"
+            "Create new order for a table",
+            "Add item to existing order",
+            "Change item quantity",
+            "Change order status",
+            "Search order",
+            "Sorted order by total (high to low)"
     };
-    private static final String[] STATUS_OPTIONS = {"PREPARING", "COMPLETED", "CANCELLED"};
-    private static final String[] SEARCH_OPTIONS = {"Search by table", "Search by order ID"};
+    private static final String[] STATUS_OPTIONS = { "PREPARING", "COMPLETED", "CANCELLED" };
+    private static final String[] SEARCH_OPTIONS = { "Search by table", "Search by order ID" };
 
     private final OrderManager orderManager;
     private final MenuManager menuManager;
@@ -74,6 +80,84 @@ public class OrderDispatcher {
     }
 
     private void createOrder() {
+
+        String tableNumber = InputHandler.readTable(scanner, "Enter table number: ");
+        String customerName = InputHandler.readCustomerName(scanner, "Enter customer name: ");
+        String customerPhone = InputHandler.readPhone(scanner, "Enter customer phone: ");
+        boolean addItems = InputHandler.readConfirmed(scanner, "Do you want to add food items? (Y/N): ");
+
+        if (!addItems) {
+            console.showMessage("Order creation cancelled.");
+            return;
+        }
+
+        List<OrderItem> items = new ArrayList<>();
+
+        while (true) {
+            console.showAvailableHeader();
+
+            List<MenuItem> availableItems = menuManager.getAvailableItems();
+            console.showAvailableTable(availableItems);
+            String itemId = InputHandler.readNonBlank(scanner, "Enter item ID: ");
+            MenuItem menuItem = menuManager.findById(itemId);
+
+            if (menuItem == null || !menuItem.isStatus()) {
+                console.showError("Item ID '" + itemId + "' does not exist or is unavailable.");
+                continue;
+            }
+
+            int quantity = 0;
+            boolean validQuantity = false;
+
+            while (!validQuantity) {
+                System.out.print("Enter quantity: ");
+                String value = scanner.nextLine().trim();
+
+                try {
+                    quantity = Integer.parseInt(value);
+                    if (quantity <= 0) {
+                        console.showError( "Quantity must be greater than 0.");
+                    } else {validQuantity = true;}
+                } catch (NumberFormatException e) {
+                    console.showError( "Quantity must be a positive integer.");
+                }
+            }
+
+            boolean itemExists = false;
+
+            for (OrderItem item : items) {
+                if (item.getMenuItem().getItemId().equalsIgnoreCase(menuItem.getItemId())) {
+                    item.setQuantity(item.getQuantity() + quantity);
+                    itemExists = true;
+                    break;
+                }
+            }
+
+            if (!itemExists) {
+                items.add(new OrderItem(menuItem, quantity));
+            }
+
+            boolean addAnother = InputHandler.readConfirmed(scanner, "Do you want to add another item? (Y/N): ");
+            if (!addAnother) {
+                break;
+            }
+        }
+
+        console.showDraftBill(tableNumber, customerName, customerPhone, items);
+        boolean confirmed = InputHandler.readConfirmed( scanner, "Confirm and create this order? (Y/N): ");
+
+        if (!confirmed) {
+            console.showMessage("Order creation cancelled.");
+            return;
+        }
+
+        try {
+            Order order = orderManager.createOrder(tableNumber, customerName, customerPhone, items);
+            console.showMessage("Order created successfully! Order ID: " + order.getOrderId());
+
+        } catch (IllegalArgumentException e) {
+            console.showError(e.getMessage());
+        }
     }
 
     private void addItem() {
