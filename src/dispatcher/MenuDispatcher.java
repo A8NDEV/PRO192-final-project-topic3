@@ -187,6 +187,16 @@ public class MenuDispatcher {
     }
 
     private void displayAvailable() {
+        if (menuManager.getMenuList().isEmpty()) {
+            console.showMessage("No items available");
+        }
+        List<MenuItem> available = menuManager.getAvailableItems();
+        if (available.isEmpty()) {
+            console.showMessage("No available items.");
+            return;
+        }
+        console.showAvailableHeader();
+        console.showAvailableTable(available);
     }
 
     private void displayItemsNoOrder() {
