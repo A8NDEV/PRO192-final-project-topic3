@@ -188,7 +188,7 @@ public class OrderDispatcher {
             order = orderManager.findById(orderId);
 
             if (order == null) {
-                console.showError( "Order ID '" + orderId + "' does not exist.");
+                console.showError("Order ID '" + orderId + "' does not exist.");
             } else if (!openOrders.contains(order)) {
                 console.showError("Order '" + orderId + "' is not pending and cannot be modified.");
                 order = null;
@@ -198,7 +198,8 @@ public class OrderDispatcher {
                 failedAttempts++;
 
                 if (failedAttempts == 3) {
-                    boolean continueInput = InputHandler.readConfirmed(scanner, "You entered an invalid Order ID 3 times. Continue? (Y/N): ");
+                    boolean continueInput = InputHandler.readConfirmed(scanner,
+                            "You entered an invalid Order ID 3 times. Continue? (Y/N): ");
                     if (!continueInput) {
                         console.showMessage("Add item operation cancelled.");
                         return;
@@ -262,8 +263,9 @@ public class OrderDispatcher {
     private void changeOrderStatus() {
         List<Order> allOrders = orderManager.getAllOrders();
         List<Order> openOrders = new java.util.ArrayList<>();
+
         for (Order order : allOrders) {
-            if (order.getStatus() == OrderStatus.PENDING || order.getStatus() == OrderStatus.PREPARING) {
+            if (order.getStatus() == OrderStatus.PENDING  || order.getStatus() == OrderStatus.PREPARING) {
                 openOrders.add(order);
             }
         }
@@ -279,52 +281,88 @@ public class OrderDispatcher {
             console.showOrderSummary(order, orderManager.calculateTotal(order));
         }
 
+        // Step 1: Validate Order ID with 3 attempts
         String orderId = "";
         Order order = null;
         int failedAttempts = 0;
 
         while (order == null) {
-            orderId = InputHandler.readNonBlank(scanner, "Enter Order ID: ");
-            order = orderManager.findById(orderId);
+            System.out.print("Enter Order ID: ");
+            orderId = scanner.nextLine().trim();
 
-            if (order == null) {
-                console.showError("Order ID '" + orderId + "' does not exist.");
-            } else if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.PREPARING) {
-                console.showError("Order '" + orderId + "' is no longer open and cannot be managed.");
-                order = null;
+            if (orderId.isEmpty()) {
+                console.showError("Order ID cannot be empty.");
+            } else {
+                order = orderManager.findById(orderId);
+
+                if (order == null) {
+                    console.showError("Order ID '" + orderId + "' does not exist.");
+                } else if (order.getStatus() != OrderStatus.PENDING
+                        && order.getStatus() != OrderStatus.PREPARING) {
+                    console.showError("Order '" + orderId + "' is no longer open and cannot be managed.");
+                    order = null;
+                }
             }
 
             if (order == null) {
                 failedAttempts++;
 
                 if (failedAttempts == 3) {
-                    boolean continueInput = InputHandler.readConfirmed( scanner, "You entered an invalid Order ID 3 times. Continue? (Y/N): ");
+                    boolean continueInput = InputHandler.readConfirmed(
+                            scanner,
+                            "You entered an invalid Order ID 3 times. Continue? (Y/N): ");
+
                     if (!continueInput) {
                         console.showMessage("Status change operation cancelled.");
                         return;
                     }
+
                     failedAttempts = 0;
                 }
             }
         }
+
         console.showOrderBill(order, orderManager.calculateTotal(order));
-        console.showMenu("Choose New Order Status", STATUS_OPTIONS, "Cancel");
-        int choice;
-        try {
-            choice = Integer.parseInt(scanner.nextLine().trim());
-        } catch (NumberFormatException e) {
-            console.showError("Status choice must be an integer.");
-            return;
-        }
 
-        if (choice == 0) {
-            console.showMessage("Status change cancelled.");
-            return;
-        }
+        int choice = -1;
+        failedAttempts = 0;
 
-        if (choice < 1 || choice > STATUS_OPTIONS.length) {
-            console.showError("Please choose a valid status option.");
-            return;
+        while (true) {
+            console.showMenu("Choose New Order Status", STATUS_OPTIONS, "Cancel");
+            System.out.print("Enter your choice: ");
+
+            String input = scanner.nextLine().trim();
+
+            try {
+                choice = Integer.parseInt(input);
+
+                if (choice == 0) {
+                    console.showMessage("Status change cancelled.");
+                    return;
+                }
+
+                if (choice >= 1 && choice <= STATUS_OPTIONS.length) {
+                    break;
+                }
+
+                console.showError("Please choose a number from 0 to " + STATUS_OPTIONS.length + ".");
+
+            } catch (NumberFormatException e) {
+                console.showError("Status choice must be an integer.");
+            }
+
+            failedAttempts++;
+
+            if (failedAttempts == 3) {
+                boolean continueInput = InputHandler.readConfirmed(scanner, "You entered an invalid status choice 3 times. Continue? (Y/N): ");
+
+                if (!continueInput) {
+                    console.showMessage("Status change cancelled.");
+                    return;
+                }
+
+                failedAttempts = 0;
+            }
         }
 
         OrderStatus newStatus = OrderStatus.valueOf(STATUS_OPTIONS[choice - 1]);
@@ -334,18 +372,45 @@ public class OrderDispatcher {
             return;
         }
 
-        boolean confirmed = InputHandler.readConfirmed(scanner,
-                "Confirm changing order " + orderId + " to " + newStatus + "? (Y/N): ");
-        if (!confirmed) {
-            console.showMessage("Status change cancelled.");
-            return;
+        failedAttempts = 0;
+        boolean confirmed = false;
+
+        while (true) {
+            System.out.print("Confirm changing order " + orderId + " to " + newStatus + "? (Y/N): ");
+
+            String input = scanner.nextLine().trim();
+
+            if (input.equalsIgnoreCase("Y")) {
+                confirmed = true;
+                break;
+            }
+
+            if (input.equalsIgnoreCase("N")) {
+                console.showMessage("Status change cancelled.");
+                return;
+            }
+
+            console.showError("Please enter Y or N.");
+            failedAttempts++;
+
+            if (failedAttempts == 3) {
+                boolean continueInput = InputHandler.readConfirmed(scanner, "You entered an invalid confirmation 3 times. Continue? (Y/N): ");
+                if (!continueInput) {
+                    console.showMessage("Status change cancelled.");
+                    return;
+                }
+
+                failedAttempts = 0;
+            }
         }
 
-        try {
-            orderManager.changeStatus(orderId, newStatus);
-            console.showMessage("Order " + orderId + " status changed successfully to " + newStatus + ".");
-        } catch (IllegalArgumentException e) {
-            console.showError(e.getMessage());
+        if (confirmed) {
+            try {
+                orderManager.changeStatus(orderId, newStatus);
+                console.showMessage("Order " + orderId  + " status changed successfully to " + newStatus + ".");
+            } catch (IllegalArgumentException e) {
+                console.showError(e.getMessage());
+            }
         }
     }
 
