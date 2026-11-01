@@ -13,6 +13,8 @@ import models.Order;
 import models.OrderItem;
 import models.OrderStatus;
 import utils.FileHandler;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
 /**
  *
@@ -33,9 +35,77 @@ public class OrderManager {
         this.menuManager = menuManager;
     }
 
-    public Order createOrder(String tableNumber, String customerName, String customerPhone,
-                             List<OrderItem> items) {
-        return null;
+    public Order createOrder(String tableNumber, String customerName, String customerPhone, List<OrderItem> items) {
+
+        if (tableNumber == null || tableNumber.trim().isEmpty()) {
+            throw new IllegalArgumentException("Table number cannot be empty.");
+        }
+
+        if (customerName == null || customerName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Customer name cannot be empty.");
+        }
+
+        if (customerPhone == null || customerPhone.trim().isEmpty()) {
+            throw new IllegalArgumentException("Customer phone cannot be empty.");
+        }
+
+        Order existingOrder = findOpenOrderByTable(tableNumber);
+
+        if (existingOrder != null) {
+            throw new IllegalArgumentException(
+                    "Table " + tableNumber + " already has an open order: "
+                            + existingOrder.getOrderId());
+        }
+
+        if (items == null || items.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "An order must contain at least one item.");
+        }
+
+        for (OrderItem item : items) {
+            if (item == null || item.getMenuItem() == null) {
+                throw new IllegalArgumentException(
+                        "Order contains an invalid menu item.");
+            }
+
+            if (item.getQuantity() <= 0) {
+                throw new IllegalArgumentException(
+                        "Item quantity must be greater than 0.");
+            }
+
+            MenuItem menuItem = menuManager.findById(
+                    item.getMenuItem().getItemId());
+
+            if (menuItem == null || !menuItem.isStatus()) {
+                throw new IllegalArgumentException(
+                        "Menu item " + item.getMenuItem().getItemId()
+                                + " does not exist or is currently unavailable.");
+            }
+        }
+
+        String orderId = String.format("O%04d", counter++);
+
+        String orderDate = LocalDate.now().format(
+                DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+
+        Order order = new Order(
+                orderId,
+                orderDate,
+                tableNumber.trim(),
+                customerName.trim(),
+                customerPhone.trim());
+
+        for (OrderItem item : items) {
+            MenuItem menuItem = menuManager.findById(
+                    item.getMenuItem().getItemId());
+
+            order.getItemsList().add(
+                    new OrderItem(menuItem, item.getQuantity()));
+        }
+
+        orders.add(order);
+
+        return order;
     }
 
     public void addItem(String orderId, MenuItem menuItem, int quantity) {
@@ -52,7 +122,7 @@ public class OrderManager {
 
         for (Order order : orders) {
             if (order.getStatus() == OrderStatus.PENDING) {
-            openOrders.add(order);
+                openOrders.add(order);
             }
         }
         return openOrders;
@@ -61,8 +131,8 @@ public class OrderManager {
     public Order findOpenOrderByTable(String tableNumber) {
         for (Order order : orders) {
             if (order.getTableNumber().equalsIgnoreCase(tableNumber)
-            && order.getStatus() == OrderStatus.PENDING) {
-               return order;
+                    && order.getStatus() == OrderStatus.PENDING) {
+                return order;
             }
         }
         return null;
@@ -83,7 +153,7 @@ public class OrderManager {
 
     public double calculateTotal(Order order) {
         double total = 0;
-        
+
         for (OrderItem item : order.getItemsList()) {
             total += item.getMenuItem().getPrice() * item.getQuantity();
 
@@ -121,53 +191,71 @@ public class OrderManager {
 
         }
         return order.getOrderId() + "|"
-            + order.getOrderDate() + "|"
-            + order.getTableNumber() + "|"
-            + order.getCustomerName() + "|"
-            + order.getCustomerPhone() + "|"
-            + order.getStatus().name() + "|"
-            + items;
+                + order.getOrderDate() + "|"
+                + order.getTableNumber() + "|"
+                + order.getCustomerName() + "|"
+                + order.getCustomerPhone() + "|"
+                + order.getStatus().name() + "|"
+                + items;
     }
 
     private Order parse(String line) {
         try {
             String[] parts = line.split(SEP);
-            
+
             if (parts.length != FIELD_COUNT) {
                 return null;
             }
+
             Order order = new Order(
-                parts[0].trim(),
-                parts[1].trim(),
-                parts[2].trim(),
-                parts[3].trim(),
-                parts[4].trim()
-            );
+                    parts[0].trim(),
+                    parts[1].trim(),
+                    parts[2].trim(),
+                    parts[3].trim(),
+                    parts[4].trim());
+
             order.setStatus(OrderStatus.valueOf(parts[5].trim()));
 
             String[] itemParts = parts[6].split(",");
-            if (itemParts.length % 2 != 0) {
-                return null;
-            }
 
-            for (int i = 0; i < itemParts.length; i += 2) {
-                MenuItem menuItem = menuManager.findById(itemParts[i].trim());
+            for (String itemPart : itemParts) {
+                String[] itemInfo = itemPart.split(":");
+
+                if (itemInfo.length != 2) {
+                    return null;
+                }
+
+                MenuItem menuItem = menuManager.findById(itemInfo[0].trim());
+
                 if (menuItem == null) {
                     return null;
                 }
-                int quantity = Integer.parseInt(itemParts[i + 1].trim());
+
+                int quantity = Integer.parseInt(itemInfo[1].trim());
+
                 if (quantity <= 0) {
                     return null;
                 }
-                order.getItemsList().add(new OrderItem(menuItem, quantity));
+
+                order.getItemsList().add(
+                        new OrderItem(menuItem, quantity));
             }
 
             return order;
+
         } catch (Exception e) {
             return null;
         }
     }
 
     private void updateCounter(String orderId) {
+        try {
+            int number = Integer.parseInt(orderId.substring(1));
+            if (number + 1 > counter) {
+                counter = number + 1;
+            }
+        } catch (RuntimeException e) {
+            // Mã đơn không đúng dạng O<số>: bỏ qua, không ảnh hưởng counter.
+        }
     }
 }
