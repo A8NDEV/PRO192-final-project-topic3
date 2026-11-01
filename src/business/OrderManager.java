@@ -117,7 +117,7 @@ public class OrderManager {
                 items += ",";
 
             }
-            items += item.getMenuItem().getItemId() + "," + item.getQuantity();
+            items += item.getMenuItem().getItemId() + ":" + item.getQuantity();
 
         }
         return order.getOrderId() + "|"
@@ -130,7 +130,42 @@ public class OrderManager {
     }
 
     private Order parse(String line) {
-        return null;
+        try {
+            String[] parts = line.split(SEP);
+            
+            if (parts.length != FIELD_COUNT) {
+                return null;
+            }
+            Order order = new Order(
+                parts[0].trim(),
+                parts[1].trim(),
+                parts[2].trim(),
+                parts[3].trim(),
+                parts[4].trim()
+            );
+            order.setStatus(OrderStatus.valueOf(parts[5].trim()));
+
+            String[] itemParts = parts[6].split(",");
+            if (itemParts.length % 2 != 0) {
+                return null;
+            }
+
+            for (int i = 0; i < itemParts.length; i += 2) {
+                MenuItem menuItem = menuManager.findById(itemParts[i].trim());
+                if (menuItem == null) {
+                    return null;
+                }
+                int quantity = Integer.parseInt(itemParts[i + 1].trim());
+                if (quantity <= 0) {
+                    return null;
+                }
+                order.getItemsList().add(new OrderItem(menuItem, quantity));
+            }
+
+            return order;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private void updateCounter(String orderId) {
