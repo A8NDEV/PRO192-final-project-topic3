@@ -33,6 +33,7 @@ public class OrderManager {
     public OrderManager(String filePath, MenuManager menuManager) {
         this.filePath = filePath;
         this.menuManager = menuManager;
+        load();
     }
 
     public Order createOrder(String tableNumber, String customerName, String customerPhone, List<OrderItem> items) {
