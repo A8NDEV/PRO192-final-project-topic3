@@ -9,7 +9,7 @@ A desktop console-based Java application to manage restaurant menu items and tab
 
 ### 1. Objectives
 - Apply **Object-Oriented Programming (OOP)**: Encapsulation, inheritance, polymorphism, abstract classes, and interfaces.
-- Manage in-memory data using the **Java Collections Framework** (`ArrayList`, `List`, `Map`).
+- Manage in-memory data using the **Java Collections Framework** (`ArrayList`, `List`, `Set`).
 - Implement file persistence (`.txt` reading/writing) using Java I/O (`BufferedReader`, `BufferedWriter`, `Scanner`).
 - Implement **Exception Handling** (`try-catch-finally`, custom exceptions) and input validation.
 - Build an interactive, user-friendly **Console-Based User Interface (CLI)**.
@@ -78,12 +78,12 @@ The project follows a 4-package standard architecture (`models`, `business`, `di
 | Package | Responsibility |
 |---|---|
 | `models` | Entity classes (`MenuItem`, `Order`, `OrderItem`, `OrderStatus`) |
-| `business` | Business logic, data repositories (`MenuRepository`, `OrderRepository`), and custom exceptions (`BusinessException`, `DuplicateItemException`, `ItemNotFoundException`) |
-| `dispatcher` | Presentation and menu navigation layer (`AppDispatcher`, `MenuDispatcher`, `OrderDispatcher`) and unified console display (`ConsoleView`) |
-| `utils` | Shared helper utilities (`Validator`, `InputHandler`) |
+| `business` | Business logic, in-memory data and file I/O in two managers (`MenuManager`, `OrderManager`),  |
+| `dispatcher` | Presentation and menu navigation layer (`AppDispatcher`, `MenuDispatcher`, `OrderDispatcher`) |
+| `utils` | Shared helper utilities (Validator, InputHandler, OutputHandler, FileHandler) |
 
 ```text
-TableOrderingSystem/
+TableSideOrdering/
 ├── src/
 │   ├── models/
 │   │   ├── MenuItem.java
@@ -92,22 +92,18 @@ TableOrderingSystem/
 │   │   └── OrderStatus.java
 │   │
 │   ├── business/
-│   │   ├── BusinessException.java
-│   │   ├── DuplicateItemException.java
-│   │   ├── ItemNotFoundException.java
-│   │   ├── MenuRepository.java
-│   │   ├── MenuService.java
-│   │   ├── OrderRepository.java
-│   │   └── OrderService.java
+│   │   ├── MenuManager.java
+│   │   └── OrderManager.java
 │   │
 │   ├── dispatcher/
 │   │   ├── AppDispatcher.java
-│   │   ├── ConsoleView.java
 │   │   ├── MenuDispatcher.java
 │   │   └── OrderDispatcher.java
 │   │
 │   ├── utils/
+│   │   ├── FileHandler.java
 │   │   ├── InputHandler.java
+│   │   ├── OutputHandler.java
 │   │   └── Validator.java
 │   │
 │   └── Main.java

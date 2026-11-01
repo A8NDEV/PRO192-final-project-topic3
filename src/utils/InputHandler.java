@@ -106,4 +106,43 @@ public class InputHandler {
             System.out.println("Invalid value. Enter true or false.");
         }
     }
+
+    public static String readCustomerName(Scanner scanner, String prompt) {
+        while (true) {
+            System.out.print(prompt);
+            String value = scanner.nextLine();
+            String error = Validator.getCustomerNameError(value);
+            if (error != null) {
+                System.out.println(error);
+                continue;
+            }
+            return Validator.normalizeName(value);
+        }
+    }
+
+    public static String readPhone(Scanner scanner, String prompt) {
+        while (true) {
+            System.out.print(prompt);
+            String value = scanner.nextLine();
+            String error = Validator.getPhoneError(value);
+            if (error != null) {
+                System.out.println(error);
+                continue;
+            }
+            return value.trim();
+        }
+    }
+
+    public static String readTable(Scanner scanner, String prompt) {
+        while (true) {
+            System.out.print(prompt);
+            String value = scanner.nextLine();
+            String table = Validator.normalizeTable(value);
+            if (table == null) {
+                System.out.println("Invalid table name (e.g., A1, B12). Max 5 characters.");
+                continue;
+            }
+            return table;
+        }
+    }
 }

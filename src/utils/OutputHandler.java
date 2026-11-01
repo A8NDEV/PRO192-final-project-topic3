@@ -1,4 +1,8 @@
-package dispatcher;
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
+package utils;
 
 import java.util.List;
 import models.MenuItem;
@@ -8,13 +12,8 @@ import models.Order;
  *
  * @author ASUS
  */
-/**
- * Lớp hiển thị Console dùng chung cho toàn bộ ứng dụng (Menu, Order, Thông báo).
- * Nội dung thông báo do nơi gọi truyền vào, view chỉ đảm nhiệm in ra màn hình.
- */
-public class ConsoleView {
+public class OutputHandler {
 
-    // ===== In thông báo chung =====
     public void showMessage(String message) {
         System.out.println(message);
     }
@@ -23,7 +22,6 @@ public class ConsoleView {
         System.out.println("Error: " + message);
     }
 
-    // ===== In menu danh sách lựa chọn động (1..n, 0 là thoát/quay lại) =====
     public void showMenu(String title, String[] options, String zeroLabel) {
         System.out.println("\n===== " + title + " =====");
         for (int i = 0; i < options.length; i++) {
@@ -33,7 +31,6 @@ public class ConsoleView {
         System.out.print("Choose: ");
     }
 
-    // ===== Hiển thị món ăn trong Menu =====
     public void showAvailableHeader() {
         System.out.println("\n===== Available Menu Items =====");
     }
@@ -57,12 +54,13 @@ public class ConsoleView {
         for (MenuItem i : items) {
             if (i != null) {
                 System.out.printf("%-6s | %-25s | %-15s | %,12.0f | %-12s%n",
-                        i.getItemId(), i.getItemName(), i.getCategory(), i.getPrice(), (i.isStatus() ? "Available" : "Unavailable"));
+                        i.getItemId(), i.getItemName(), i.getCategory(), i.getPrice(),
+                        (i.isStatus() ? "Available" : "Unavailable"));
             }
         }
     }
 
-    // ===== Hiển thị tóm tắt đơn hàng Order =====
+    // Hiển thị tóm tắt đơn hàng Order
     public void showOrderSummary(Order order, double total) {
         System.out.println(String.format("%-6s | %-10s | Table %-5s | %-10s | %-25s | %2d item(s) | %,.0f",
                 order.getOrderId(), order.getOrderDate(), order.getTableNumber(),
