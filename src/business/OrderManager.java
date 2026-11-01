@@ -174,6 +174,13 @@ public class OrderManager {
     }
 
     public void save() throws IOException {
+        List<String> lines = new ArrayList<>();
+
+        for (Order order : orders) {
+            lines.add(format(order));
+        }
+
+        FileHandler.writeFile(filePath, lines);
     }
 
     private void load() {
