@@ -14,8 +14,6 @@ import java.util.regex.Pattern;
 public class Validator {
 
     private static final Pattern TABLE_PATTERN = Pattern.compile("^([A-Z])(\\d+)$");
-    private static final int TABLE_MAX_LENGTH = 5;
-    private static final int NAME_MAX_LENGTH = 50;
 
     public static boolean isNotBlank(String value) {
         return value != null && !value.trim().isEmpty();
@@ -65,11 +63,11 @@ public class Validator {
         if (value == null || value.trim().isEmpty()) {
             return "Name cannot be blank.";
         }
-        if (value.trim().length() > NAME_MAX_LENGTH) {
-            return "Name cannot exceed " + NAME_MAX_LENGTH + " characters.";
+        if (value.trim().length() > 50) {
+            return "Name cannot exceed " + 50 + " characters.";
         }
         if (!value.matches("^[a-zA-Z0-9 ]+$")) {
-            return "Name can only contain English letters, numbers, and spaces.";
+            return "Name can only contain letters, numbers, and spaces.";
         }
         if (!value.matches(".*[a-zA-Z].*")) {
             return "Name must contain at least one letter.";
@@ -134,6 +132,6 @@ public class Validator {
             return null;
         }
         String table = m.group(1) + digits;
-        return table.length() <= TABLE_MAX_LENGTH ? table : null;
+        return table.length() <= 5 ? table : null;
     }
 }

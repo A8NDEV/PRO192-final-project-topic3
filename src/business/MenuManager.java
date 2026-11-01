@@ -18,9 +18,6 @@ import utils.Validator;
  */
 public class MenuManager {
 
-    private static final String SEP = "\\|";
-    private static final int FIELD_COUNT = 5;
-
     private final String filePath;
     private final List<MenuItem> menuList;
 
@@ -110,7 +107,7 @@ public class MenuManager {
         for (String line : lines) {
             MenuItem item = parse(line);
             if (item == null) {
-                System.out.println("Skipping invalid menu line: " + line);
+                System.out.println("Skip invalid line: " + line);
                 continue;
             }
             items.add(item);
@@ -120,8 +117,8 @@ public class MenuManager {
 
     private MenuItem parse(String line) {
         try {
-            String[] parts = line.split(SEP);
-            if (parts.length != FIELD_COUNT) {
+            String[] parts = line.split("\\|");
+            if (parts.length != 5) {
                 return null;
             }
             return new MenuItem(parts[0].trim(), Validator.normalizeName(parts[1]), Validator.normalizeName(parts[2]),
