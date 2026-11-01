@@ -52,6 +52,12 @@ public class OrderManager {
     }
 
     public Order findOpenOrderByTable(String tableNumber) {
+        for (Order order : orders) {
+            if (order.getTableNumber().equalsIgnoreCase(tableNumber)
+            && order.getStatus() == OrderStatus.PENDING) {
+               return order;
+            }
+        }
         return null;
     }
 
