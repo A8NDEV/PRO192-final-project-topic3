@@ -56,6 +56,11 @@ public class OrderManager {
     }
 
     public Order findById(String orderId) {
+        for (Order order : orders) {
+            if (order.getOrderId().equalsIgnoreCase(orderId)) {
+                return order;
+            }
+        }
         return null;
     }
 
