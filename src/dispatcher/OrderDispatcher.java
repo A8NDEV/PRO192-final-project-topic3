@@ -67,7 +67,7 @@ public class OrderDispatcher {
                 case 0:
                     break;
                 default:
-                    console.showMessage("Choose 0 to 6 from the Order Management menu.");
+                    console.showMessage("Choose 0 to 6 Options.");
                     break;
             }
         } while (choice != 0);
