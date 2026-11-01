@@ -82,7 +82,13 @@ public class OrderManager {
     }
 
     public double calculateTotal(Order order) {
-        return 0;
+        double total = 0;
+        
+        for (OrderItem item : order.getItemsList()) {
+            total += item.getMenuItem().getPrice() * item.getQuantity();
+
+        }
+        return total;
     }
 
     public List<Order> getAllOrders() {
