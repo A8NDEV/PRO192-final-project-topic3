@@ -198,7 +198,7 @@ public class OrderDispatcher {
             MenuItem menuItem = menuManager.findById(itemId);
 
             if (menuItem == null || !menuItem.isStatus()) {
-                console.showError( "Item ID '" + itemId + "' does not exist or is currently unavailable.");
+                console.showError("Item ID '" + itemId + "' does not exist or is currently unavailable.");
                 continue;
             }
 
@@ -211,11 +211,13 @@ public class OrderDispatcher {
                 try {
                     quantity = Integer.parseInt(value);
                     if (quantity <= 0) {
-                        console.showError( "Quantity must be greater than 0.");
-                    } else { validQuantity = true;}
+                        console.showError("Quantity must be greater than 0.");
+                    } else {
+                        validQuantity = true;
+                    }
 
                 } catch (NumberFormatException e) {
-                    console.showError( "Quantity must be a positive integer.");
+                    console.showError("Quantity must be a positive integer.");
                 }
             }
 
@@ -239,6 +241,71 @@ public class OrderDispatcher {
     }
 
     private void changeOrderStatus() {
+        List<Order> allOrders = orderManager.getAllOrders();
+        List<Order> openOrders = new java.util.ArrayList<>();
+        for (Order order : allOrders) {
+            if (order.getStatus() == OrderStatus.PENDING || order.getStatus() == OrderStatus.PREPARING) {
+                openOrders.add(order);
+            }
+        }
+
+        if (openOrders.isEmpty()) {
+            console.showMessage("There are no open orders to manage.");
+            return;
+        }
+
+        console.showMessage("\n===== Open Orders =====");
+
+        for (Order order : openOrders) {
+            console.showOrderSummary(order, orderManager.calculateTotal(order));
+        }
+        String orderId = InputHandler.readNonBlank(scanner, "Enter Order ID: ");
+        Order order = orderManager.findById(orderId);
+
+        if (order == null || (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.PREPARING)) {
+            console.showError(  "Order ID '" + orderId  + "' does not exist or is no longer an open order.");
+            return;
+        }
+
+        console.showOrderBill(order, orderManager.calculateTotal(order));
+        console.showMenu("Choose New Order Status", STATUS_OPTIONS, "Cancel");
+        int choice;
+        try {
+            choice = Integer.parseInt(scanner.nextLine().trim());
+        } catch (NumberFormatException e) {
+            console.showError("Status choice must be an integer.");
+            return;
+        }
+
+        if (choice == 0) {
+            console.showMessage("Status change cancelled.");
+            return;
+        }
+
+        if (choice < 1 || choice > STATUS_OPTIONS.length) {
+            console.showError("Please choose a valid status option.");
+            return;
+        }
+
+        OrderStatus newStatus = OrderStatus.valueOf(STATUS_OPTIONS[choice - 1]);
+
+        if (order.getStatus() == newStatus) {
+            console.showError( "Order is already in " + newStatus + " status.");
+            return;
+        }
+
+        boolean confirmed = InputHandler.readConfirmed(scanner, "Confirm changing order " + orderId + " to " + newStatus + "? (Y/N): ");
+        if (!confirmed) {
+            console.showMessage("Status change cancelled.");
+            return;
+        }
+
+        try {
+            orderManager.changeStatus(orderId, newStatus);
+            console.showMessage( "Order " + orderId + " status changed successfully to " + newStatus + ".");
+        } catch (IllegalArgumentException e) {
+            console.showError(e.getMessage());
+        }
     }
 
     private void searchOrder() {
