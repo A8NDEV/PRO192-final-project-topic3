@@ -13,8 +13,7 @@ import java.util.regex.Pattern;
  */
 public class Validator {
 
-    private static final Pattern TABLE_PATTERN = Pattern.compile("^([A-Z])(\\d+)$");
-
+   
     public static boolean isNotBlank(String value) {
         return value != null && !value.trim().isEmpty();
     }
@@ -123,7 +122,7 @@ public class Validator {
         if (value == null) {
             return null;
         }
-        Matcher m = TABLE_PATTERN.matcher(value.trim().toUpperCase());
+        Matcher m = Pattern.compile("^([A-Z])(\\d+)$").matcher(value.trim().toUpperCase());
         if (!m.matches()) {
             return null;
         }
