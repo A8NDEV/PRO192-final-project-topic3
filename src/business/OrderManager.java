@@ -110,7 +110,23 @@ public class OrderManager {
     }
 
     private String format(Order order) {
-        return "";
+        String items = "";
+
+        for (OrderItem item : order.getItemsList()) {
+            if (!items.isEmpty()) {
+                items += ",";
+
+            }
+            items += item.getMenuItem().getItemId() + "," + item.getQuantity();
+
+        }
+        return order.getOrderId() + "|"
+            + order.getOrderDate() + "|"
+            + order.getTableNumber() + "|"
+            + order.getCustomerName() + "|"
+            + order.getCustomerPhone() + "|"
+            + order.getStatus().name() + "|"
+            + items;
     }
 
     private Order parse(String line) {
