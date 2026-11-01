@@ -176,17 +176,43 @@ public class OrderDispatcher {
             console.showOrderSummary(order, orderManager.calculateTotal(order));
         }
 
-        String orderId = InputHandler.readNonBlank(scanner, "Enter Order ID: ");
-        Order order = orderManager.findById(orderId);
+        String orderId;
+        Order order = null;
+        int failedAttempts = 0;
 
-        if (order == null) {
-            console.showError("Order ID '" + orderId + "' does not exist.");
-            return;
-        }
+        while (order == null) {
 
-        if (!openOrders.contains(order)) {
-            console.showError("Order '" + orderId + "' is not pending and cannot be modified.");
-            return;
+            orderId = InputHandler.readNonBlank(
+                    scanner, "Enter Order ID: ");
+
+            order = orderManager.findById(orderId);
+
+            if (order == null) {
+                console.showError(
+                        "Order ID '" + orderId + "' does not exist.");
+            } else if (!openOrders.contains(order)) {
+                console.showError(
+                        "Order '" + orderId
+                                + "' is not pending and cannot be modified.");
+                order = null;
+            }
+
+            if (order == null) {
+                failedAttempts++;
+
+                if (failedAttempts == 3) {
+                    boolean continueInput = InputHandler.readConfirmed(
+                            scanner,
+                            "You entered an invalid Order ID 3 times. Continue? (Y/N): ");
+
+                    if (!continueInput) {
+                        console.showMessage("Add item operation cancelled.");
+                        return;
+                    }
+
+                    failedAttempts = 0;
+                }
+            }
         }
 
         console.showOrderBill(order, orderManager.calculateTotal(order));
@@ -263,7 +289,7 @@ public class OrderDispatcher {
         Order order = orderManager.findById(orderId);
 
         if (order == null || (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.PREPARING)) {
-            console.showError(  "Order ID '" + orderId  + "' does not exist or is no longer an open order.");
+            console.showError("Order ID '" + orderId + "' does not exist or is no longer an open order.");
             return;
         }
 
@@ -290,7 +316,7 @@ public class OrderDispatcher {
         OrderStatus newStatus = OrderStatus.valueOf(STATUS_OPTIONS[choice - 1]);
 
         if (order.getStatus() == newStatus) {
-            console.showError( "Order is already in " + newStatus + " status.");
+            console.showError("Order is already in " + newStatus + " status.");
             return;
         }
 
@@ -302,7 +328,7 @@ public class OrderDispatcher {
 
         try {
             orderManager.changeStatus(orderId, newStatus);
-            console.showMessage( "Order " + orderId + " status changed successfully to " + newStatus + ".");
+            console.showMessage("Order " + orderId + " status changed successfully to " + newStatus + ".");
         } catch (IllegalArgumentException e) {
             console.showError(e.getMessage());
         }
