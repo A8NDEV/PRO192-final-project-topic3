@@ -4,11 +4,9 @@ import business.BusinessException;
 import business.MenuService;
 import business.OrderService;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
 import models.MenuItem;
-import models.Order;
 import utils.InputHandler;
 
 /**
@@ -21,7 +19,6 @@ public class MenuDispatcher {
         "Add new Item",
         "Update Item By ID",
         "Search Item",
-        "Delete Item By ID",
         "Display available items",
         "Display all items no order"
     };
@@ -61,12 +58,9 @@ public class MenuDispatcher {
                     searchItem();
                     break;
                 case 4:
-                    deleteItem();
-                    break;
-                case 5:
                     displayAvailable();
                     break;
-                case 6:
+                case 5:
                     displayItemsNoOrder();
                     break;
                 case 0:
@@ -184,40 +178,6 @@ public class MenuDispatcher {
             default:
                 console.showMessage("Invalid option.");
                 break;
-        }
-    }
-
-    private void deleteItem() {
-        String id = InputHandler.readNonBlank(scanner, "Enter Item ID: ");
-        MenuItem item = menuService.findById(id);
-
-        if (item == null) {
-            console.showError("Item not found.");
-            return;
-        }
-
-        console.showItem(item);
-
-        List<Order> allOrders = (orderService != null) ? orderService.getAllOrders() : Collections.emptyList();
-
-        if (menuService.isItemOrdered(id, allOrders)) {
-            console.showError("Item has orders. Cannot delete.");
-            return;
-        }
-
-        if (!InputHandler.readConfirmed(scanner, "Confirm delete (y/n): ")) {
-            console.showMessage("Cancelled.");
-            return;
-        }
-
-        try {
-            menuService.deleteItem(id, allOrders);
-            menuService.save();
-            console.showMessage("Item deleted successfully!");
-        } catch (BusinessException e) {
-            console.showError(e.getMessage());
-        } catch (IOException e) {
-            console.showError("Error saving file: " + e.getMessage());
         }
     }
 

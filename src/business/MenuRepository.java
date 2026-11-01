@@ -57,19 +57,6 @@ public class MenuRepository {
         return false;
     }
 
-    public boolean delete(String id) {
-        if (id == null) {
-            return false;
-        }
-        for (int i = 0; i < menuList.size(); i++) {
-            if (menuList.get(i).getItemId().equalsIgnoreCase(id.trim())) {
-                menuList.remove(i);
-                return true;
-            }
-        }
-        return false;
-    }
-
     public void save() throws IOException {
         try (BufferedWriter writer = Files.newBufferedWriter(filePath, StandardCharsets.UTF_8)) {
             for (MenuItem item : menuList) {
