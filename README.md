@@ -80,7 +80,7 @@ The project follows a 4-package standard architecture (`models`, `business`, `di
 | `models` | Entity classes (`MenuItem`, `Order`, `OrderItem`, `OrderStatus`) |
 | `business` | Business logic, in-memory data and file I/O in two managers (`MenuManager`, `OrderManager`),  |
 | `dispatcher` | Presentation and menu navigation layer (`AppDispatcher`, `MenuDispatcher`, `OrderDispatcher`) |
-| `utils` | Shared helper utilities (`Validator`, `InputHandler`, `OutputHandler`) |
+| `utils` | Shared helper utilities (Validator, InputHandler, OutputHandler, FileHandler) |
 
 ```text
 TableSideOrdering/
@@ -101,6 +101,7 @@ TableSideOrdering/
 │   │   └── OrderDispatcher.java
 │   │
 │   ├── utils/
+│   │   ├── FileHandler.java
 │   │   ├── InputHandler.java
 │   │   ├── OutputHandler.java
 │   │   └── Validator.java

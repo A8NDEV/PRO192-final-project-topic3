@@ -1,3 +1,7 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
 package dispatcher;
 
 import business.MenuManager;
@@ -182,30 +186,8 @@ public class MenuDispatcher {
     }
 
     private void displayAvailable() {
-        if (menuManager.getMenuList().isEmpty()) {
-            console.showMessage("No items available.");
-            return;
-        }
-        List<MenuItem> available = menuManager.getAvailableItems();
-        if (available.isEmpty()) {
-            console.showMessage("No items are currently available.");
-            return;
-        }
-        console.showAvailableHeader();
-        console.showAvailableTable(available);
     }
 
     private void displayItemsNoOrder() {
-        if (orderManager == null) {
-            console.showError("Order service is not configured.");
-            return;
-        }
-        List<MenuItem> items = orderManager.getUnorderedItems();
-        if (items.isEmpty()) {
-            console.showMessage("All items have been ordered.");
-            return;
-        }
-        console.showMessage("\n===== Items with no orders =====");
-        console.showItemTable(items);
     }
 }

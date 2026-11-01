@@ -1,3 +1,8 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
+
 import business.MenuManager;
 import business.OrderManager;
 import dispatcher.AppDispatcher;
@@ -6,8 +11,6 @@ import dispatcher.OrderDispatcher;
 import java.util.Scanner;
 
 /**
- * Điểm khởi chạy: tạo các đối tượng và nối (wiring) chúng lại với nhau bằng
- * hàm tạo (Dependency Injection), sau đó chạy menu chính.
  *
  * @author ASUS
  */

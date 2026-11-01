@@ -1,36 +1,32 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
 package business;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import models.MenuItem;
+import utils.FileHandler;
 
 /**
- * Quản lý menu: giữ danh sách món trong bộ nhớ, xử lý nghiệp vụ (kiểm tra trùng
- * ID, thêm, sửa, tìm kiếm) và đọc/ghi file menu.txt theo bảng mã UTF-8.
+ *
+ * @author ASUS
  */
 public class MenuManager {
 
     private static final String SEP = "\\|";
     private static final int FIELD_COUNT = 5;
 
-    private final Path filePath;
+    private final String filePath;
     private final List<MenuItem> menuList;
 
     public MenuManager(String filePath) {
-        this.filePath = Paths.get(filePath);
-        ensureFileExists();
+        this.filePath = filePath;
         this.menuList = load();
     }
-
-    // ===== Nghiệp vụ =====
 
     public MenuItem findById(String id) {
         if (id == null) {
@@ -57,21 +53,6 @@ public class MenuManager {
             }
         }
         return result;
-    }
-
-    public List<MenuItem> getAvailableItems() {
-        List<MenuItem> result = new ArrayList<>();
-        for (MenuItem item : menuList) {
-            if (item.isStatus()) {
-                result.add(item);
-            }
-        }
-        return result;
-    }
-
-    // Trả về bản sao của danh sách để bên ngoài không thêm/xóa trực tiếp được.
-    public List<MenuItem> getMenuList() {
-        return new ArrayList<>(menuList);
     }
 
     public void addItem(MenuItem item) {
@@ -103,54 +84,37 @@ public class MenuManager {
         currentItem.setStatus(updatedItem.isStatus());
     }
 
-    // ===== Đọc/ghi file =====
-
-    public void save() throws IOException {
-        try (BufferedWriter writer = Files.newBufferedWriter(filePath, StandardCharsets.UTF_8)) {
-            for (MenuItem item : menuList) {
-                writer.write(item.getItemId() + "|" + item.getItemName() + "|"
-                        + item.getCategory() + "|" + item.getPrice() + "|" + item.isStatus());
-                writer.newLine();
-            }
-        }
+    public List<MenuItem> getMenuList() {
+        return new ArrayList<>(menuList);
     }
 
-    private void ensureFileExists() {
-        try {
-            Path parent = filePath.getParent();
-            if (parent != null) {
-                Files.createDirectories(parent);
-            }
-            if (!Files.exists(filePath)) {
-                Files.createFile(filePath);
-            }
-        } catch (IOException e) {
-            System.out.println("Cannot create menu file: " + e.getMessage());
+    public List<MenuItem> getAvailableItems() {
+        return Collections.emptyList();
+    }
+
+    public void save() throws IOException {
+        List<String> lines = new ArrayList<>();
+        for (MenuItem item : menuList) {
+            lines.add(item.getItemId() + "|" + item.getItemName() + "|"
+                    + item.getCategory() + "|" + item.getPrice() + "|" + item.isStatus());
         }
+        FileHandler.writeFile(filePath, lines);
     }
 
     private List<MenuItem> load() {
         List<MenuItem> items = new ArrayList<>();
-        try (BufferedReader reader = Files.newBufferedReader(filePath, StandardCharsets.UTF_8)) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (line.trim().isEmpty()) {
-                    continue;
-                }
-                MenuItem item = parse(line);
-                if (item == null) {
-                    System.out.println("Skipping invalid menu line: " + line);
-                    continue;
-                }
-                items.add(item);
+        List<String> lines = FileHandler.readFile(filePath);
+        for (String line : lines) {
+            MenuItem item = parse(line);
+            if (item == null) {
+                System.out.println("Skipping invalid menu line: " + line);
+                continue;
             }
-        } catch (IOException e) {
-            System.out.println("Cannot read menu file: " + e.getMessage());
+            items.add(item);
         }
         return items;
     }
 
-    // 1 dòng text -> MenuItem (trả về null nếu dòng sai định dạng)
     private MenuItem parse(String line) {
         try {
             String[] parts = line.split(SEP);

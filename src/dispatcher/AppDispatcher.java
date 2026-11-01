@@ -1,3 +1,7 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
 package dispatcher;
 
 import java.util.Scanner;
@@ -6,9 +10,6 @@ import utils.OutputHandler;
 /**
  *
  * @author ASUS
- */
-/**
- * Điều hướng menu chính: chọn vào menu con Item hoặc Order.
  */
 public class AppDispatcher {
 
