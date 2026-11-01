@@ -16,9 +16,6 @@ public class Validator {
     private static final Pattern TABLE_PATTERN = Pattern.compile("^([A-Z])(\\d+)$");
     private static final int TABLE_MAX_LENGTH = 5;
     private static final int NAME_MAX_LENGTH = 50;
-    private static final Pattern NAME_INVALID_CHAR = Pattern.compile("[^\\p{L}\\p{M}\\p{N} ]");
-    private static final Pattern LETTER = Pattern.compile("\\p{L}");
-    private static final Pattern NON_DIGIT = Pattern.compile("[^0-9]");
 
     public static boolean isNotBlank(String value) {
         return value != null && !value.trim().isEmpty();
@@ -68,25 +65,38 @@ public class Validator {
         if (value == null || value.trim().isEmpty()) {
             return "Name cannot be blank.";
         }
-        if (value.length() > NAME_MAX_LENGTH) {
-            return "Name is too long (max " + NAME_MAX_LENGTH + " characters). You entered "
-                    + value.length() + ".";
+        if (value.trim().length() > NAME_MAX_LENGTH) {
+            return "Name cannot exceed " + NAME_MAX_LENGTH + " characters.";
         }
-        if (!value.equals(value.trim())) {
-            return "Name cannot start or end with a space.";
+        if (!value.matches("^[a-zA-Z0-9 ]+$")) {
+            return "Name can only contain English letters, numbers, and spaces.";
         }
-        Matcher invalid = NAME_INVALID_CHAR.matcher(value);
-        if (invalid.find()) {
-            return "Name can only contain letters, numbers and spaces. Invalid character: '"
-                    + invalid.group() + "'.";
-        }
-        if (value.contains("  ")) {
-            return "Name cannot have two spaces in a row.";
-        }
-        if (!LETTER.matcher(value).find()) {
+        if (!value.matches(".*[a-zA-Z].*")) {
             return "Name must contain at least one letter.";
         }
         return null;
+    }
+
+    public static boolean isValidCustomerName(String value) {
+        return getCustomerNameError(value) == null;
+    }
+
+    // Chuan hoa ten: xoa khoang trang thua va viet hoa chu cai dau moi tu
+    public static String normalizeName(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return "";
+        }
+        String[] words = value.trim().split("\\s+");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < words.length; i++) {
+            String w = words[i];
+            sb.append(Character.toUpperCase(w.charAt(0)))
+                    .append(w.substring(1).toLowerCase());
+            if (i < words.length - 1) {
+                sb.append(" ");
+            }
+        }
+        return sb.toString();
     }
 
     // SDT: bat dau bang 0 (10 so) hoac 84 (11 so), 9 so cuoi khong giong het nhau.
@@ -94,29 +104,23 @@ public class Validator {
         if (value == null || value.trim().isEmpty()) {
             return "Phone cannot be blank.";
         }
-        Matcher nonDigit = NON_DIGIT.matcher(value);
-        if (nonDigit.find()) {
-            return "Phone can only contain digits. Invalid character: '" + nonDigit.group() + "'.";
+        String trimmed = value.trim();
+        if (!trimmed.matches("^(0|84)\\d{9}$")) {
+            return "Phone must start with 0 (10 digits) or 84 (11 digits).";
         }
-        if (value.startsWith("84")) {
-            if (value.length() != 11) {
-                return "Phone starting with 84 must have 11 digits (you entered " + value.length() + ").";
-            }
-        } else if (value.startsWith("0")) {
-            if (value.length() != 10) {
-                return "Phone starting with 0 must have 10 digits (you entered " + value.length() + ").";
-            }
-        } else {
-            return "Phone must start with 0 or 84.";
-        }
-        String lastNine = value.substring(value.length() - 9);
-        if (lastNine.chars().distinct().count() == 1) {
+        String lastNine = trimmed.substring(trimmed.length() - 9);
+        if (lastNine.matches("(\\d)\\1{8}")) {
             return "The last 9 digits cannot all be the same.";
         }
         return null;
     }
 
-    // Chuan hoa cach dat ten cho table (1 chu cai tu dong in hoa va kem theo so, vi du : A1, B12)
+    public static boolean isValidPhone(String value) {
+        return getPhoneError(value) == null;
+    }
+
+    // Chuan hoa cach dat ten cho table (1 chu cai tu dong in hoa va kem theo so, vi
+    // du : A1, B12)
     public static String normalizeTable(String value) {
         if (value == null) {
             return null;

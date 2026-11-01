@@ -12,6 +12,7 @@ import java.util.Scanner;
 import models.MenuItem;
 import utils.InputHandler;
 import utils.OutputHandler;
+import utils.Validator;
 
 /**
  *
@@ -79,7 +80,7 @@ public class MenuDispatcher {
     private void addItem() {
         String id;
         while (true) {
-            id = InputHandler.readNonBlank(scanner, "Enter item ID: ");
+            id = InputHandler.readNonBlank(scanner, "Enter item ID: ").toUpperCase();
             if (menuManager.findById(id) != null) {
                 console.showError("Item ID '" + id + "' already exists! Please enter a different ID.");
                 continue;
@@ -87,8 +88,8 @@ public class MenuDispatcher {
             break;
         }
 
-        String name = InputHandler.readNonBlank(scanner, "Enter item Name: ");
-        String category = InputHandler.readNonBlank(scanner, "Enter Category: ");
+        String name = Validator.normalizeName(InputHandler.readNonBlank(scanner, "Enter item Name: "));
+        String category = Validator.normalizeName(InputHandler.readNonBlank(scanner, "Enter Category: "));
         double price = InputHandler.readValidPrice(scanner, "Enter Price: ");
         boolean status = InputHandler.readBoolean(scanner, "Show/Hide? (true/false): ");
 
@@ -106,7 +107,7 @@ public class MenuDispatcher {
     }
 
     private void updateItem() {
-        String id = InputHandler.readNonBlank(scanner, "Enter item ID to update: ");
+        String id = InputHandler.readNonBlank(scanner, "Enter item ID to update: ").toUpperCase();
         MenuItem currentItem = menuManager.findById(id);
 
         if (currentItem == null) {
@@ -118,11 +119,11 @@ public class MenuDispatcher {
         console.showItem(currentItem);
         console.showMessage("Press [Enter] to keep current value.\n");
 
-        String newName = InputHandler.readOptionalNonBlank(scanner,
-                "Enter new Name [" + currentItem.getItemName() + "]: ", currentItem.getItemName());
+        String newName = Validator.normalizeName(InputHandler.readOptionalNonBlank(scanner,
+                "Enter new Name [" + currentItem.getItemName() + "]: ", currentItem.getItemName()));
 
-        String newCategory = InputHandler.readOptionalNonBlank(scanner,
-                "Enter new Category [" + currentItem.getCategory() + "]: ", currentItem.getCategory());
+        String newCategory = Validator.normalizeName(InputHandler.readOptionalNonBlank(scanner,
+                "Enter new Category [" + currentItem.getCategory() + "]: ", currentItem.getCategory()));
 
         double newPrice = InputHandler.readOptionalPrice(scanner,
                 "Enter new Price [" + String.format("%,.0f", currentItem.getPrice()) + "]: ", currentItem.getPrice());
@@ -159,7 +160,7 @@ public class MenuDispatcher {
         }
         switch (choice) {
             case 1:
-                String id = InputHandler.readNonBlank(scanner, "Enter Item ID to search: ");
+                String id = InputHandler.readNonBlank(scanner, "Enter Item ID to search: ").toUpperCase();
                 MenuItem item = menuManager.findById(id);
                 if (item != null) {
                     console.showItem(item);

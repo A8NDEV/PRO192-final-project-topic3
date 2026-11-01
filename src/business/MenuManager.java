@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.List;
 import models.MenuItem;
 import utils.FileHandler;
+import utils.Validator;
 
 /**
  *
@@ -45,7 +46,7 @@ public class MenuManager {
         if (name == null || name.trim().isEmpty()) {
             return Collections.emptyList();
         }
-        String lowerName = name.trim().toLowerCase();
+        String lowerName = name.trim().replaceAll("\\s+", " ").toLowerCase();
         List<MenuItem> result = new ArrayList<>();
         for (MenuItem item : menuList) {
             if (item.getItemName() != null && item.getItemName().toLowerCase().contains(lowerName)) {
@@ -59,6 +60,8 @@ public class MenuManager {
         if (findById(item.getItemId()) != null) {
             throw new IllegalArgumentException("Item ID '" + item.getItemId() + "' already exists!");
         }
+        item.setItemName(Validator.normalizeName(item.getItemName()));
+        item.setCategory(Validator.normalizeName(item.getCategory()));
         menuList.add(item);
     }
 
@@ -78,8 +81,8 @@ public class MenuManager {
             throw new IllegalArgumentException("Price must be greater than 0.");
         }
 
-        currentItem.setItemName(updatedItem.getItemName());
-        currentItem.setCategory(updatedItem.getCategory());
+        currentItem.setItemName(Validator.normalizeName(updatedItem.getItemName()));
+        currentItem.setCategory(Validator.normalizeName(updatedItem.getCategory()));
         currentItem.setPrice(updatedItem.getPrice());
         currentItem.setStatus(updatedItem.isStatus());
     }
@@ -121,8 +124,8 @@ public class MenuManager {
             if (parts.length != FIELD_COUNT) {
                 return null;
             }
-            return new MenuItem(parts[0], parts[1], parts[2],
-                    Double.parseDouble(parts[3]), Boolean.parseBoolean(parts[4]));
+            return new MenuItem(parts[0].trim(), Validator.normalizeName(parts[1]), Validator.normalizeName(parts[2]),
+                    Double.parseDouble(parts[3].trim()), Boolean.parseBoolean(parts[4].trim()));
         } catch (Exception e) {
             return null;
         }
