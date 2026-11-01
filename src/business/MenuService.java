@@ -127,42 +127,4 @@ public class MenuService {
         }
         menuRepository.update(updatedItem);
     }
-
-    public boolean isItemOrdered(String itemId, List<Order> orders) {
-        if (itemId == null || orders == null || orders.isEmpty()) {
-            return false;
-        }
-
-        String targetId = itemId.trim();
-
-        for (Order order : orders) {
-            if (order == null || order.getItemsList() == null) {
-                continue;
-            }
-
-            for (OrderItem item : order.getItemsList()) {
-                if (item == null || item.getMenuItem() == null) {
-                    continue;
-                }
-
-                String currentId = item.getMenuItem().getItemId();
-                if (currentId != null && targetId.equalsIgnoreCase(currentId.trim())) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    public void deleteItem(String id, List<Order> orders) {
-        MenuItem item = findById(id);
-        if (item == null) {
-            throw new BusinessException.ItemNotFoundException(id);
-        }
-        if (isItemOrdered(id, orders)) {
-            throw new BusinessException("Cannot delete item '" + id
-                    + "' because it has already been ordered.");
-        }
-        menuRepository.delete(id);
-    }
 }

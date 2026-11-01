@@ -25,14 +25,6 @@ public class OrderService {
         return String.format("%02d/%02d/%d", d.getDayOfMonth(), d.getMonthValue(), d.getYear());
     }
 
-    public Order createOrder(String tableNumber, String customerName, String customerPhone) {
-        ensureNoPendingOrderForTable(tableNumber);
-        Order order = new Order(orderRepository.nextId(), today(), tableNumber, customerName, customerPhone);
-        orderRepository.add(order);
-        persist();
-        return order;
-    }
-
     public Order createOrder(String tableNumber, String customerName, String customerPhone,
                              List<OrderItem> items) {
         ensureNoPendingOrderForTable(tableNumber);
@@ -103,19 +95,6 @@ public class OrderService {
         persist();
     }
 
-    public void removeItem(String orderId, String itemId) {
-        Order order = requireOrder(orderId);
-        requirePending(order);
-
-        OrderItem item = findItem(order, itemId);
-        if (item == null) {
-            throw new BusinessException("Menu item " + itemId + " is not in order " + orderId + ".");
-        }
-
-        order.getItemsList().remove(item);
-        persist();
-    }
-
     public void changeStatus(String orderId, OrderStatus newStatus) {
         if (newStatus != OrderStatus.PREPARING
                 && newStatus != OrderStatus.COMPLETED
@@ -133,10 +112,6 @@ public class OrderService {
         }
         order.setStatus(newStatus);
         persist();
-    }
-
-    public void cancelOrder(String orderId) {
-        changeStatus(orderId, OrderStatus.CANCELLED);
     }
 
     public List<Order> getOpenOrders() {
@@ -182,17 +157,6 @@ public class OrderService {
             }
         }
         return result;
-    }
-
-    public Order searchByOrderId(String orderId) {
-        if (orderId == null) {
-            return null;
-        }
-        return orderRepository.findById(orderId.trim());
-    }
-
-    public void save() throws IOException {
-        orderRepository.save();
     }
 
     public double calculateTotal(Order order) {
