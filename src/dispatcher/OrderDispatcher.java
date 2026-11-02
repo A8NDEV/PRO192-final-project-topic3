@@ -7,6 +7,7 @@ package dispatcher;
 import business.MenuManager;
 import business.OrderManager;
 import models.Order;
+import models.OrderStatus;
 
 import java.util.List;
 import java.util.Scanner;
@@ -85,6 +86,56 @@ public class OrderDispatcher {
     }
 
     private void changeQuantity() {
+        
+    }
+
+
+    private String readItemIdInOrder(Order order) {
+        return null;
+    }
+    private Order readOrderId(boolean mustBePending) {
+        int attempts = 0;
+        while(true){
+            String id = InputHandler.readNonBlank(scanner, "Enter order ID: ");
+            Order order = orderManager.findById(id);
+            String error = null;
+            if(order == null) {
+                error = "Order ID '" + id + "' does not exist. Check the ID and try again.";
+            } else if(mustBePending && order.getStatus() != OrderStatus.PENDING) {
+                error = "Order ID '" + id + "' is not in PENDING status.";
+            }
+            if(error == null) {
+                return order;
+            }
+            console.showError(error);
+            attempts++;
+            if(attempts >= 3) {
+                if(!continueAfterInvalid("Order ID")) {
+                    attempts = 0;
+                }
+            }
+        }
+    }
+
+    private  boolean showOpenOrders() {
+        return true;
+    }
+
+    private int readNonNegativeQuantity(String prompt) {
+        return 0;
+    }
+
+    private boolean continueAfterInvalid(String fieldName) {
+        while(true) {
+            String answer = InputHandler.readNonBlank(scanner, "Do you want to try again for " + fieldName + "? (Y/N): ");
+            if(answer.equalsIgnoreCase("Y")) {
+                return true;
+            } else if(answer.equalsIgnoreCase("N")) {
+                return false;
+            } else {
+                console.showError("Invalid input. Please enter 'Y' or 'N'.");
+            }
+        }
     }
 
     private void manageOrderStatus() {
@@ -118,6 +169,7 @@ public class OrderDispatcher {
 
     private void searchByTable() {
         String keyword = InputHandler.readNonBlank(scanner, "Enter table number: ");
+
         List<Order> found = orderManager.searchByTable(keyword);
         if (found.isEmpty()) {
             console.showError("No orders found for table '" + keyword + "'.");
