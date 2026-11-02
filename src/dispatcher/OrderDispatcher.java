@@ -572,5 +572,19 @@ public class OrderDispatcher {
     }
 
     private void sortedOrders() {
+        List<Order> orderList = orderManager.getAllOrders();
+        if (orderList.isEmpty()) {
+            console.showMessage("No orders available..");
+            return;
+        }
+
+        List<Order> sorted = new ArrayList<>(orderList);
+        sorted.sort((a, b) -> Double.compare(orderManager.calculateTotal(b), orderManager.calculateTotal(a)));
+        console.showMessage("\n----- Orders sorted by total (high to low) -----");
+
+        for (Order order : sorted) {
+            double total = orderManager.calculateTotal(order);
+            console.showOrderSummary(order, total);
+        }
     }
 }
