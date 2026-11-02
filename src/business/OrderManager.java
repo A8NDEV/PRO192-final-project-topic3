@@ -51,7 +51,13 @@ public class OrderManager {
     }
 
     public List<Order> getOpenOrders() {
-        return Collections.emptyList();
+        List<Order> open = new ArrayList<>();
+        for (Order order : orders) {
+            if (order.getStatus() == OrderStatus.PREPARING || order.getStatus() == OrderStatus.PREPARING) {
+                open.add(order);
+            }
+        }
+        return open;
     }
 
     public Order findOpenOrderByTable(String tableNumber) {
