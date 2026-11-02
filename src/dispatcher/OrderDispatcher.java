@@ -7,6 +7,7 @@ package dispatcher;
 import business.MenuManager;
 import business.OrderManager;
 import models.Order;
+import models.OrderItem;
 import models.OrderStatus;
 
 import java.util.List;
@@ -86,12 +87,54 @@ public class OrderDispatcher {
     }
 
     private void changeQuantity() {
-        
+        if (!showOpenOrders()) {
+            return;
+        }
+        Order order = readOrderId(true);
+        if (order == null) {
+            return;
+        }
+        console.showMessage("\nCurrent items in order " + order.getOrderId() + ":");
+        console.showOrderBill(order, orderManager.calculateTotal(order));
+
+        String itemId = readItemIdInOrder(order);
+        if (itemId == null) {
+            return;
+        }
+        int quantity = readNonNegativeQuantity("Enter new quantity (0 to remove item): ");
+        if (quantity < 0) {
+            return;
+
+        }
+        try {
+            orderManager.updateQuantity(order.getOrderId(), itemId, quantity);
+            console.showMessage(quantity == 0 ? "Item removed from order." + order.getOrderId() + "." : "Item quantity updated to " + quantity + ".");
+            Order updatedOrder = orderManager.findById(order.getOrderId());
+            if (updatedOrder != null) {
+                console.showMessage("\nUpdated order bill:");
+                console.showOrderBill(updatedOrder, orderManager.calculateTotal(updatedOrder));
+            }
+        } catch (IllegalArgumentException e) {
+            console.showError(e.getMessage());
+        }
     }
 
 
     private String readItemIdInOrder(Order order) {
-        return null;
+
+        int attempts = 0;
+        while (true) {
+            String id = InputHandler.readNonBlank(scanner, "Menu item ID in this order: ");
+            for (OrderItem item : order.getItemsList()) {
+                if (item.getMenuItem().getItemId().equalsIgnoreCase(id)) return id;
+            }
+            console.showError("Menu item ID '" + id + "' is not in order " + order.getOrderId() + ". Enter an item ID shown in this order.");
+            attempts++;
+            if (attempts >= 3) {
+                if (!continueAfterInvalid("item ID in order")) return null;
+                attempts = 0;
+            }
+        }
     }
     private Order readOrderId(boolean mustBePending) {
         int attempts = 0;
@@ -118,11 +161,33 @@ public class OrderDispatcher {
     }
 
     private  boolean showOpenOrders() {
+        List<Order> orders = orderManager.getOpenOrders();
+        if (orders.isEmpty()) {
+            console.showMessage("No active (PENDING or PREPARING) orders are available.");
+            return false;
+        }
+        console.showMessage("\n----- Active orders (PENDING / PREPARING) -----");
+        for (Order order : orders) console.showOrderSummary(order, orderManager.calculateTotal(order));
         return true;
     }
 
     private int readNonNegativeQuantity(String prompt) {
-        return 0;
+        int attempts = 0;
+        while (true) {
+            String raw = InputHandler.readNonBlank(scanner, prompt);
+            try {
+                int quantity = Integer.parseInt(raw);
+                if (quantity >= 0) return quantity;
+                console.showError("Quantity cannot be negative. Enter 0 to remove the item or a positive number.");
+            } catch (NumberFormatException e) {
+                console.showError("'" + raw + "' is not a whole number. Enter 0, 1, 2, or another whole number.");
+            }
+            attempts++;
+            if (attempts >= 3) {
+                if (!continueAfterInvalid("quantity")) return -1;
+                attempts = 0;
+            }
+        }
     }
 
     private boolean continueAfterInvalid(String fieldName) {
