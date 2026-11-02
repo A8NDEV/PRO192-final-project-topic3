@@ -13,8 +13,6 @@ import java.util.regex.Pattern;
  */
 public class Validator {
 
-    private static final Pattern TABLE_PATTERN = Pattern.compile("^([A-Z])(\\d+)$");
-
     public static boolean isNotBlank(String value) {
         return value != null && !value.trim().isEmpty();
     }
@@ -63,15 +61,21 @@ public class Validator {
         if (value == null || value.trim().isEmpty()) {
             return "Name cannot be blank.";
         }
-        if (value.trim().length() > 50) {
-            return "Name cannot exceed " + 50 + " characters.";
+
+        String trimmed = value.trim();
+
+        if (trimmed.length() > 50) {
+            return "Name cannot exceed 50 characters.";
         }
-        if (!value.matches("^[a-zA-Z0-9 ]+$")) {
+
+        if (!trimmed.matches("^[\\p{L}\\p{N} ]+$")) {
             return "Name can only contain letters, numbers, and spaces.";
         }
-        if (!value.matches(".*[a-zA-Z].*")) {
+
+        if (!trimmed.matches(".*\\p{L}.*")) {
             return "Name must contain at least one letter.";
         }
+
         return null;
     }
 
@@ -123,7 +127,7 @@ public class Validator {
         if (value == null) {
             return null;
         }
-        Matcher m = TABLE_PATTERN.matcher(value.trim().toUpperCase());
+        Matcher m = Pattern.compile("^([A-Z])(\\d+)$").matcher(value.trim().toUpperCase());
         if (!m.matches()) {
             return null;
         }
@@ -133,5 +137,16 @@ public class Validator {
         }
         String table = m.group(1) + digits;
         return table.length() <= 5 ? table : null;
+    }
+
+    public static boolean isPositiveInt(String value) {
+        if (value == null || !value.matches("^[0-9]+$")) {
+            return false;
+        }
+        try {
+            return Integer.parseInt(value) > 0;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 }
