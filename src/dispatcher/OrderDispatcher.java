@@ -82,53 +82,155 @@ public class OrderDispatcher {
     }
 
     private void createOrder() {
+        String tableNumber = "";
+        String customerName = "";
+        String customerPhone = "";
 
-        String tableNumber = InputHandler.readTable(scanner, "Enter table number: ");
-        String customerName = InputHandler.readCustomerName(scanner, "Enter customer name: ");
-        String customerPhone = InputHandler.readPhone(scanner, "Enter customer phone: ");
-        boolean addItems = InputHandler.readConfirmed(scanner, "Do you want to add food items? (Y/N): ");
+        int failedAttempts = 0;
+        while (tableNumber.isEmpty()) {
+            System.out.print("Enter table number: ");
+            String value = scanner.nextLine().trim();
+            String normalizedTable = Validator.normalizeTable(value);
 
-        if (!addItems) {
-            console.showMessage("Order creation cancelled.");
+            if (normalizedTable != null) {
+                tableNumber = normalizedTable;
+                if (!tableNumber.equals(value)) {
+                    console.showMessage("Table number normalized to " + tableNumber + ".");
+                }
+            } else {
+                console.showError("Invalid table number. Enter one letter followed by numbers, for example A1 or B12.");
+                failedAttempts++;
+                if (failedAttempts == 3) {
+                    boolean retry = InputHandler.readConfirmed(scanner,
+                            "You entered an invalid table number 3 times. Continue? (Y/N): ");
+                    if (!retry) {
+                        console.showMessage("Create order cancelled.");
+                        return;
+                    }
+                    failedAttempts = 0;
+                }
+            }
+        }
+
+        Order existingOrder = orderManager.findOpenOrderByTable(tableNumber);
+        if (existingOrder != null) {
+            console.showError("Table " + tableNumber + " already has pending order " + existingOrder.getOrderId()
+                    + ". Please add items to that order instead.");
             return;
         }
 
+        failedAttempts = 0;
+        while (customerName.isEmpty()) {
+            System.out.print("Enter customer name: ");
+            String value = scanner.nextLine().trim();
+            String error = Validator.getCustomerNameError(value);
+
+            if (error == null) {
+                customerName = Validator.normalizeName(value);
+            } else {
+                console.showError(error);
+                failedAttempts++;
+                if (failedAttempts == 3) {
+                    boolean retry = InputHandler.readConfirmed(
+                            scanner, "You entered an invalid customer name 3 times. Continue? (Y/N): ");
+                    if (!retry) {
+                        console.showMessage("Create order cancelled.");
+                        return;
+                    }
+                    failedAttempts = 0;
+                }
+            }
+        }
+
+        failedAttempts = 0;
+        while (customerPhone.isEmpty()) {
+            System.out.print("Enter customer phone: ");
+            String value = scanner.nextLine().trim();
+            String error = Validator.getPhoneError(value);
+            if (error == null) {
+                customerPhone = value;
+            } else {
+                console.showError(error);
+                failedAttempts++;
+                if (failedAttempts == 3) {
+                    boolean retry = InputHandler.readConfirmed(scanner,
+                            "You entered an invalid phone number 3 times. Continue? (Y/N): ");
+                    if (!retry) {
+                        console.showMessage("Create order cancelled.");
+                        return;
+                    }
+                    failedAttempts = 0;
+                }
+            }
+        }
+
+        boolean addItems = InputHandler.readConfirmed(scanner, "Do you want to add food items? (Y/N): ");
+        if (!addItems) {
+            console.showMessage("Order creation cancelled. No order was saved.");
+            return;
+        }
         List<OrderItem> items = new ArrayList<>();
 
         while (true) {
             console.showAvailableHeader();
-
             List<MenuItem> availableItems = menuManager.getAvailableItems();
             console.showAvailableTable(availableItems);
-            String itemId = InputHandler.readNonBlank(scanner, "Enter item ID: ");
-            MenuItem menuItem = menuManager.findById(itemId);
+            MenuItem menuItem = null;
 
-            if (menuItem == null || !menuItem.isStatus()) {
-                console.showError("Item ID '" + itemId + "' does not exist or is unavailable.");
-                continue;
+            failedAttempts = 0;
+
+            while (menuItem == null) {
+                System.out.print("Enter item ID: ");
+                String itemId = scanner.nextLine().trim();
+                menuItem = menuManager.findById(itemId);
+                if (menuItem == null) {
+                    console.showError("Menu item ID '" + itemId
+                            + "' does not exist. Please enter an ID from the available menu.");
+                } else if (!menuItem.isStatus()) {
+                    console.showError(
+                            "Menu item '" + itemId + "' is currently unavailable. Please choose another item.");
+                    menuItem = null;
+                }
+
+                if (menuItem == null) {
+                    failedAttempts++;
+                    if (failedAttempts == 3) {
+                        boolean retry = InputHandler.readConfirmed(scanner,
+                                "You entered an invalid item ID 3 times. Continue? (Y/N): ");
+                        if (!retry) {
+                            console.showMessage("Create order cancelled. No order was saved.");
+                            return;
+                        }
+                        failedAttempts = 0;
+                    }
+                }
             }
 
             int quantity = 0;
-            boolean validQuantity = false;
-
-            while (!validQuantity) {
+            failedAttempts = 0;
+            while (quantity <= 0) {
                 System.out.print("Enter quantity: ");
                 String value = scanner.nextLine().trim();
 
-                try {
+                if (Validator.isPositiveInt(value)) {
                     quantity = Integer.parseInt(value);
-                    if (quantity <= 0) {
-                        console.showError("Quantity must be greater than 0.");
-                    } else {
-                        validQuantity = true;
+                } else {
+                    console.showError("Quantity must be a positive integer greater than 0.");
+                    failedAttempts++;
+                    if (failedAttempts == 3) {
+                        boolean retry = InputHandler.readConfirmed(scanner,
+                                "You entered an invalid quantity 3 times. Continue? (Y/N): ");
+
+                        if (!retry) {
+                            console.showMessage("Create order cancelled. No order was saved.");
+                            return;
+                        }
+                        failedAttempts = 0;
                     }
-                } catch (NumberFormatException e) {
-                    console.showError("Quantity must be a positive integer.");
                 }
             }
 
             boolean itemExists = false;
-
             for (OrderItem item : items) {
                 if (item.getMenuItem().getItemId().equalsIgnoreCase(menuItem.getItemId())) {
                     item.setQuantity(item.getQuantity() + quantity);
@@ -140,7 +242,6 @@ public class OrderDispatcher {
             if (!itemExists) {
                 items.add(new OrderItem(menuItem, quantity));
             }
-
             boolean addAnother = InputHandler.readConfirmed(scanner, "Do you want to add another item? (Y/N): ");
             if (!addAnother) {
                 break;
@@ -151,12 +252,13 @@ public class OrderDispatcher {
         boolean confirmed = InputHandler.readConfirmed(scanner, "Confirm and create this order? (Y/N): ");
 
         if (!confirmed) {
-            console.showMessage("Order creation cancelled.");
+            console.showMessage("Order creation cancelled. No order was saved.");
             return;
         }
 
         try {
             Order order = orderManager.createOrder(tableNumber, customerName, customerPhone, items);
+
             console.showMessage("Order created successfully! Order ID: " + order.getOrderId());
 
         } catch (IllegalArgumentException e) {
@@ -166,41 +268,49 @@ public class OrderDispatcher {
 
     private void addItem() {
         List<Order> openOrders = orderManager.getOpenOrders();
+
         if (openOrders.isEmpty()) {
             console.showMessage("There are no pending orders to update.");
             return;
         }
 
+        // Display pending orders
         console.showMessage("\n===== Pending Orders =====");
+
         for (Order order : openOrders) {
             console.showOrderSummary(order, orderManager.calculateTotal(order));
         }
 
+        // 1. Validate Order ID
         String orderId = "";
         Order order = null;
         int failedAttempts = 0;
 
         while (order == null) {
+            System.out.print("Enter Order ID: ");
+            orderId = scanner.nextLine().trim();
 
-            orderId = InputHandler.readNonBlank(
-                    scanner, "Enter Order ID: ");
+            if (orderId.isEmpty()) {
+                console.showError("Order ID cannot be empty. Please enter an existing pending Order ID.");
+            } else {
+                order = orderManager.findById(orderId);
 
-            order = orderManager.findById(orderId);
-
-            if (order == null) {
-                console.showError("Order ID '" + orderId + "' does not exist.");
-            } else if (!openOrders.contains(order)) {
-                console.showError("Order '" + orderId + "' is not pending and cannot be modified.");
-                order = null;
+                if (order == null) {
+                    console.showError("Order ID '" + orderId + "' does not exist. Please check the ID and try again.");
+                } else if (!openOrders.contains(order)) {
+                    console.showError("Order '" + orderId + "' is not pending and cannot be modified.");
+                    order = null;
+                }
             }
 
             if (order == null) {
                 failedAttempts++;
 
                 if (failedAttempts == 3) {
-                    boolean continueInput = InputHandler.readConfirmed(scanner,
+                    boolean retry = InputHandler.readConfirmed(scanner,
                             "You entered an invalid Order ID 3 times. Continue? (Y/N): ");
-                    if (!continueInput) {
+
+                    if (!retry) {
                         console.showMessage("Add item operation cancelled.");
                         return;
                     }
@@ -210,47 +320,90 @@ public class OrderDispatcher {
         }
 
         console.showOrderBill(order, orderManager.calculateTotal(order));
+
+        // 2. Add items to the selected order
         while (true) {
             console.showAvailableHeader();
+
             List<MenuItem> availableItems = menuManager.getAvailableItems();
             console.showAvailableTable(availableItems);
-            String itemId = InputHandler.readNonBlank(scanner, "Enter Item ID: ");
-            MenuItem menuItem = menuManager.findById(itemId);
 
-            if (menuItem == null || !menuItem.isStatus()) {
-                console.showError("Item ID '" + itemId + "' does not exist or is currently unavailable.");
-                continue;
-            }
+            MenuItem menuItem = null;
+            failedAttempts = 0;
 
-            int quantity = 0;
-            boolean validQuantity = false;
-            while (!validQuantity) {
-                System.out.print("Enter quantity: ");
-                String value = scanner.nextLine().trim();
+            // Validate menu item ID
+            while (menuItem == null) {
+                System.out.print("Enter item ID: ");
+                String itemId = scanner.nextLine().trim();
 
-                try {
-                    quantity = Integer.parseInt(value);
-                    if (quantity <= 0) {
-                        console.showError("Quantity must be greater than 0.");
-                    } else {
-                        validQuantity = true;
+                menuItem = menuManager.findById(itemId);
+
+                if (menuItem == null) {
+                    console.showError("Menu item ID '" + itemId
+                            + "' does not exist. Please choose an item from the available menu.");
+                } else if (!menuItem.isStatus()) {
+                    console.showError(
+                            "Menu item '" + itemId + "' is currently unavailable. Please choose another item.");
+                    menuItem = null;
+                }
+
+                if (menuItem == null) {
+                    failedAttempts++;
+
+                    if (failedAttempts == 3) {
+                        boolean retry = InputHandler.readConfirmed(scanner,
+                                "You entered an invalid item ID 3 times. Continue? (Y/N): ");
+
+                        if (!retry) {
+                            console.showMessage("Add item operation cancelled.");
+                            return;
+                        }
+                        failedAttempts = 0;
                     }
-
-                } catch (NumberFormatException e) {
-                    console.showError("Quantity must be a positive integer.");
                 }
             }
 
+            // Validate quantity
+            int quantity = 0;
+            failedAttempts = 0;
+
+            while (quantity <= 0) {
+                System.out.print("Enter quantity: ");
+                String value = scanner.nextLine().trim();
+
+                if (Validator.isPositiveInt(value)) {
+                    quantity = Integer.parseInt(value);
+                } else {
+                    console.showError("Quantity must be a positive integer greater than 0.");
+                    failedAttempts++;
+
+                    if (failedAttempts == 3) {
+                        boolean retry = InputHandler.readConfirmed(scanner,
+                                "You entered an invalid quantity 3 times. Continue? (Y/N): ");
+
+                        if (!retry) {
+                            console.showMessage("Add item operation cancelled.");
+                            return;
+                        }
+                        failedAttempts = 0;
+                    }
+                }
+            }
+
+            // Add item through business layer
             try {
                 orderManager.addItem(orderId, menuItem, quantity);
+
                 console.showMessage("Item added successfully.");
                 console.showOrderBill(order, orderManager.calculateTotal(order));
+
             } catch (IllegalArgumentException e) {
                 console.showError(e.getMessage());
                 return;
             }
 
             boolean addAnother = InputHandler.readConfirmed(scanner, "Do you want to add another item? (Y/N): ");
+
             if (!addAnother) {
                 break;
             }
@@ -265,7 +418,7 @@ public class OrderDispatcher {
         List<Order> openOrders = new java.util.ArrayList<>();
 
         for (Order order : allOrders) {
-            if (order.getStatus() == OrderStatus.PENDING  || order.getStatus() == OrderStatus.PREPARING) {
+            if (order.getStatus() == OrderStatus.PENDING || order.getStatus() == OrderStatus.PREPARING) {
                 openOrders.add(order);
             }
         }
@@ -281,7 +434,6 @@ public class OrderDispatcher {
             console.showOrderSummary(order, orderManager.calculateTotal(order));
         }
 
-        // Step 1: Validate Order ID with 3 attempts
         String orderId = "";
         Order order = null;
         int failedAttempts = 0;
@@ -354,7 +506,8 @@ public class OrderDispatcher {
             failedAttempts++;
 
             if (failedAttempts == 3) {
-                boolean continueInput = InputHandler.readConfirmed(scanner, "You entered an invalid status choice 3 times. Continue? (Y/N): ");
+                boolean continueInput = InputHandler.readConfirmed(scanner,
+                        "You entered an invalid status choice 3 times. Continue? (Y/N): ");
 
                 if (!continueInput) {
                     console.showMessage("Status change cancelled.");
@@ -394,7 +547,8 @@ public class OrderDispatcher {
             failedAttempts++;
 
             if (failedAttempts == 3) {
-                boolean continueInput = InputHandler.readConfirmed(scanner, "You entered an invalid confirmation 3 times. Continue? (Y/N): ");
+                boolean continueInput = InputHandler.readConfirmed(scanner,
+                        "You entered an invalid confirmation 3 times. Continue? (Y/N): ");
                 if (!continueInput) {
                     console.showMessage("Status change cancelled.");
                     return;
@@ -407,7 +561,7 @@ public class OrderDispatcher {
         if (confirmed) {
             try {
                 orderManager.changeStatus(orderId, newStatus);
-                console.showMessage("Order " + orderId  + " status changed successfully to " + newStatus + ".");
+                console.showMessage("Order " + orderId + " status changed successfully to " + newStatus + ".");
             } catch (IllegalArgumentException e) {
                 console.showError(e.getMessage());
             }

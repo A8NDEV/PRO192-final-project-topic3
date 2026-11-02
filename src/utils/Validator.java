@@ -133,4 +133,14 @@ public class Validator {
         String table = m.group(1) + digits;
         return table.length() <= 5 ? table : null;
     }
+    public static boolean isPositiveInt(String value) {
+        if (value == null || !value.matches("^[0-9]+$")) {
+            return false;
+        }
+        try {
+            return Integer.parseInt(value) > 0 ;
+        } catch  (NumberFormatException e) {
+            return false;
+        }
+    }
 }
