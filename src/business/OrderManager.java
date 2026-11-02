@@ -45,8 +45,8 @@ public class OrderManager {
     }
 
     public void updateQuantity(String orderId, String itemId, int newQuantity) {
-        if(newQuantity <= 0) {
-            throw new IllegalArgumentException("Quantity must be greater than 0.");
+        if(newQuantity < 0) {
+            throw new IllegalArgumentException("Quantity cannot be negative. Enter 0 to remove the item.");
         }
         Order order = requireOrder(orderId);
         requirePending(order);
@@ -71,7 +71,7 @@ public class OrderManager {
     public List<Order> getOpenOrders() {
         List<Order> open = new ArrayList<>();
         for (Order order : orders) {
-            if (order.getStatus() == OrderStatus.PREPARING || order.getStatus() == OrderStatus.PREPARING) {
+            if (order.getStatus() == OrderStatus.PENDING || order.getStatus() == OrderStatus.PREPARING) {
                 open.add(order);
             }
         }

@@ -154,8 +154,9 @@ public class OrderDispatcher {
             attempts++;
             if(attempts >= 3) {
                 if(!continueAfterInvalid("Order ID")) {
-                    attempts = 0;
+                    return null;
                 }
+                attempts = 0;
             }
         }
     }
