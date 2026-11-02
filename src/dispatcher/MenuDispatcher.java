@@ -10,6 +10,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Scanner;
 import models.MenuItem;
+import models.Order;
+import models.OrderItem;
 import utils.InputHandler;
 import utils.OutputHandler;
 import utils.Validator;
@@ -200,5 +202,35 @@ public class MenuDispatcher {
     }
 
     private void displayItemsNoOrder() {
+        if (orderManager == null) {
+            console.showError("Order service is not configured.");
+            return;
+        }
+
+        int count = 0;
+        List<MenuItem> menuList = menuManager.getMenuList();
+        List<Order> orderList = orderManager.getAllOrders();
+
+        for (MenuItem item : menuList) {
+            boolean found = false;
+            for (Order order : orderList) {
+                for (OrderItem orderItem : order.getItemsList()) {
+                    if (item.getItemId().equalsIgnoreCase(orderItem.getMenuItem().getItemId())) {
+                        found = true;
+                        break;
+                    }
+                    if (found == true) {
+                        continue;
+                    } else {
+                        console.showMessage("\n===== Items with no orders =====");
+                        console.showItem(item);
+                        count++;
+                    }
+                }
+            }
+        }
+        if (count == 0) {
+            console.showMessage("All items have orders.");
+        }
     }
 }

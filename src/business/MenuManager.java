@@ -89,13 +89,15 @@ public class MenuManager {
     }
 
     public List<MenuItem> getAvailableItems() {
-        List<MenuItem> result  = new ArrayList<>();
+
+        List<MenuItem> availableItems = new ArrayList<>();
+
         for (MenuItem item : menuList) {
             if (item.isStatus()) {
-                result.add(item);
+                availableItems.add(item);
             }
         }
-        return result;
+        return availableItems;
     }
 
     public void save() throws IOException {

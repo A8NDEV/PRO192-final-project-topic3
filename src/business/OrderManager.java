@@ -15,6 +15,8 @@ import models.Order;
 import models.OrderItem;
 import models.OrderStatus;
 import utils.FileHandler;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
 /**
  *
@@ -36,12 +38,141 @@ public class OrderManager {
         load();
     }
 
-    public Order createOrder(String tableNumber, String customerName, String customerPhone,
-            List<OrderItem> items) {
-        return null;
+
+    public Order createOrder(String tableNumber, String customerName, String customerPhone, List<OrderItem> items) {
+
+        if (tableNumber == null || tableNumber.trim().isEmpty()) {
+            throw new IllegalArgumentException("Table number cannot be empty.");
+        }
+
+        if (customerName == null || customerName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Customer name cannot be empty.");
+        }
+
+        if (customerPhone == null || customerPhone.trim().isEmpty()) {
+            throw new IllegalArgumentException("Customer phone cannot be empty.");
+        }
+
+        Order existingOrder = findOpenOrderByTable(tableNumber);
+
+        if (existingOrder != null) {
+            throw new IllegalArgumentException(
+                    "Table " + tableNumber + " already has an open order: " + existingOrder.getOrderId());
+        }
+
+        if (items == null || items.isEmpty()) {
+            throw new IllegalArgumentException("An order must contain at least one item.");
+        }
+
+        for (OrderItem item : items) {
+            if (item == null || item.getMenuItem() == null) {
+                throw new IllegalArgumentException("Order contains an invalid menu item.");
+            }
+
+            if (item.getQuantity() <= 0) {
+                throw new IllegalArgumentException("Item quantity must be greater than 0.");
+            }
+
+            MenuItem menuItem = menuManager.findById(item.getMenuItem().getItemId());
+
+            if (menuItem == null || !menuItem.isStatus()) {
+                throw new IllegalArgumentException(
+                        "Menu item " + item.getMenuItem().getItemId() + " does not exist or is currently unavailable.");
+            }
+        }
+
+        String orderId = String.format("O%04d", counter++);
+
+        String orderDate = LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+
+        Order order = new Order(
+                orderId,
+                orderDate,
+                tableNumber.trim(),
+                customerName.trim(),
+                customerPhone.trim());
+
+        for (OrderItem item : items) {
+            MenuItem menuItem = menuManager.findById(
+                    item.getMenuItem().getItemId());
+
+            order.getItemsList().add(new OrderItem(menuItem, item.getQuantity()));
+        }
+
+        orders.add(order);
+        try {
+            save();
+        } catch (IOException e) {
+            orders.remove(order);
+            counter--;
+            throw new IllegalArgumentException(  "Cannot save the new order: " + e.getMessage());
+        }
+        return order;
     }
 
     public void addItem(String orderId, MenuItem menuItem, int quantity) {
+
+        if (orderId == null || orderId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Order ID cannot be empty.");
+        }
+
+        Order order = findById(orderId);
+
+        if (order == null) {
+            throw new IllegalArgumentException("Order ID '" + orderId + "' does not exist.");
+        }
+
+        if (order.getStatus() != OrderStatus.PENDING) {
+            throw new IllegalArgumentException("Order '" + orderId + "' is not PENDING and cannot be modified.");
+        }
+
+        if (menuItem == null) {
+            throw new IllegalArgumentException("Menu item cannot be empty.");
+        }
+
+        MenuItem existingMenuItem = menuManager.findById(menuItem.getItemId());
+
+        if (existingMenuItem == null || !existingMenuItem.isStatus()) {
+            throw new IllegalArgumentException(
+                    "Menu item '" + menuItem.getItemId() + "' does not exist or is currently unavailable.");
+        }
+
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("Quantity must be greater than 0.");
+        }
+
+        OrderItem existingItem = null;
+
+        for (OrderItem item : order.getItemsList()) {
+            if (item.getMenuItem().getItemId().equalsIgnoreCase(existingMenuItem.getItemId())) {
+                existingItem = item;
+                break;
+            }
+        }
+
+        int oldQuantity = 0;
+        boolean isNewItem = false;
+
+        if (existingItem != null) {
+            oldQuantity = existingItem.getQuantity();
+            existingItem.setQuantity(oldQuantity + quantity);
+        } else {
+            existingItem = new OrderItem(existingMenuItem, quantity);
+            order.getItemsList().add(existingItem);
+            isNewItem = true;
+        }
+
+        try {
+            save();
+        } catch (IOException e) {
+            if (isNewItem) {
+                order.getItemsList().remove(existingItem);
+            } else {
+                existingItem.setQuantity(oldQuantity);
+            }
+
+            throw new IllegalArgumentException("Cannot save the updated order: " + e.getMessage());
+        }
     }
 
     public void updateQuantity(String orderId, String itemId, int newQuantity) {
@@ -66,19 +197,66 @@ public class OrderManager {
     }
 
     public void changeStatus(String orderId, OrderStatus newStatus) {
+
+        if (orderId == null || orderId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Order ID cannot be empty.");
+        }
+
+        Order order = findById(orderId);
+
+        if (order == null) {
+            throw new IllegalArgumentException("Order ID '" + orderId + "' does not exist.");
+        }
+
+        if (newStatus == null) {
+            throw new IllegalArgumentException("New order status cannot be empty.");
+        }
+
+        if (order.getStatus() == OrderStatus.COMPLETED
+                || order.getStatus() == OrderStatus.CANCELLED) {
+            throw new IllegalArgumentException(
+                    "Order '" + orderId + "' is already " + order.getStatus() + " and cannot change status again.");
+        }
+
+        if (newStatus == OrderStatus.PENDING) {
+            throw new IllegalArgumentException("Cannot change an order back to PENDING.");
+        }
+
+        if (order.getStatus() == newStatus) {
+            throw new IllegalArgumentException("Order is already in " + newStatus + " status.");
+        }
+
+        OrderStatus oldStatus = order.getStatus();
+        order.setStatus(newStatus);
+
+        try {
+            save();
+        } catch (IOException e) {
+            order.setStatus(oldStatus);
+
+            throw new IllegalArgumentException("Cannot save the order status: " + e.getMessage());
+        }
     }
 
     public List<Order> getOpenOrders() {
-        List<Order> open = new ArrayList<>();
+
+        List<Order> openOrders = new ArrayList<>();
+
         for (Order order : orders) {
-            if (order.getStatus() == OrderStatus.PENDING || order.getStatus() == OrderStatus.PREPARING) {
-                open.add(order);
+            if (order.getStatus() == OrderStatus.PENDING) {
+                openOrders.add(order);
             }
         }
-        return open;
+        return openOrders;
     }
 
     public Order findOpenOrderByTable(String tableNumber) {
+        for (Order order : orders) {
+            if (order.getTableNumber().equalsIgnoreCase(tableNumber)
+                    && order.getStatus() == OrderStatus.PENDING) {
+                return order;
+            }
+        }
         return null;
     }
 
@@ -118,7 +296,7 @@ public class OrderManager {
     }
 
     public List<Order> getAllOrders() {
-        return Collections.emptyList();
+        return new ArrayList<>(orders);
     }
 
     public List<Order> sortedByTotalDesc() {
