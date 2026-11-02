@@ -45,6 +45,24 @@ public class OrderManager {
     }
 
     public void updateQuantity(String orderId, String itemId, int newQuantity) {
+        if(newQuantity <= 0) {
+            throw new IllegalArgumentException("Quantity must be greater than 0.");
+        }
+        Order order = requireOrder(orderId);
+        requirePending(order);
+
+        OrderItem item = findItem(order, itemId);
+        if (item == null) {
+            throw new IllegalArgumentException("Menu item" + itemId + " not found in order " + orderId);
+        }
+
+        if(newQuantity ==0) {
+           order.getItemsList().remove(item);
+        }else{
+            
+            item.setQuantity(newQuantity);
+        }
+        persist();
     }
 
     public void changeStatus(String orderId, OrderStatus newStatus) {
@@ -109,6 +127,15 @@ public class OrderManager {
 
     public List<MenuItem> getUnorderedItems() {
         return Collections.emptyList();
+    }
+
+    private OrderItem findItem(Order order, String itemId) {
+        for (OrderItem item : order.getItemsList()) {
+            if (item.getMenuItem().getItemId().equalsIgnoreCase(itemId)) {
+                return item;
+            }
+        }
+        return null;
     }
 
     private Order requireOrder(String orderId) {
