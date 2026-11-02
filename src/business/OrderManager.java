@@ -111,6 +111,29 @@ public class OrderManager {
         return Collections.emptyList();
     }
 
+    private Order requireOrder(String orderId) {
+        Order order = findById(orderId);
+        if (order == null) {
+            throw new IllegalArgumentException("Order not found: " + orderId);
+        }
+        return order;
+    }
+
+    private void requirePending(Order order) {
+        if (order.getStatus() != OrderStatus.PENDING) {
+            throw new IllegalStateException("Order " + order.getOrderId() + " is "+ order.getStatus() + ", not PENDING.");
+        }
+
+    }
+
+    private void persist() {
+        try {
+            save();
+        } catch (IOException e) {
+            throw new IllegalStateException("Cannot save orders: " + e.getMessage());
+        }
+    }
+
     public void save() throws IOException {
         List<String> lines = new ArrayList<>();
         for (Order order : orders) {
