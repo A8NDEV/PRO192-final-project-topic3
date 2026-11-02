@@ -197,29 +197,26 @@ public class MenuDispatcher {
             return;
         }
 
+        int count = 0;
         List<MenuItem> menuList = menuManager.getMenuList();
         List<Order> orderList = orderManager.getAllOrders();
-        int count = 0;
 
         for (MenuItem item : menuList) {
-            boolean hasOrder = false;
+            boolean found = false;
             for (Order order : orderList) {
                 for (OrderItem orderItem : order.getItemsList()) {
                     if (item.getItemId().equalsIgnoreCase(orderItem.getMenuItem().getItemId())) {
-                        hasOrder = true;
+                        found = true;
                         break;
                     }
+                    if (found == true) {
+                        continue;
+                    } else {
+                        console.showMessage("\n===== Items with no orders =====");
+                        console.showItem(item);
+                        count++;
+                    }
                 }
-                if (hasOrder) {
-                    break;
-                }
-            }
-            if (!hasOrder) {
-                if (count == 0) {
-                    console.showMessage("\n===== Items with no orders =====");
-                }
-                console.showItem(item);
-                count++;
             }
         }
         if (count == 0) {
