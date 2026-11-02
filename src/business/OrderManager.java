@@ -97,7 +97,13 @@ public class OrderManager {
         }
 
         orders.add(order);
-
+        try {
+            save();
+        } catch (IOException e) {
+            orders.remove(order);
+            counter--;
+            throw new IllegalArgumentException(  "Cannot save the new order: " + e.getMessage());
+        }
         return order;
     }
 
