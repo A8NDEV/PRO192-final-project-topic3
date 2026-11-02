@@ -89,6 +89,7 @@ public class MenuManager {
     }
 
     public List<MenuItem> getAvailableItems() {
+
         List<MenuItem> availableItems = new ArrayList<>();
 
         for (MenuItem item : menuList) {

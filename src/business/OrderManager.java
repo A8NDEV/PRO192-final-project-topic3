@@ -5,6 +5,8 @@
 package business;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -35,6 +37,7 @@ public class OrderManager {
         this.menuManager = menuManager;
         load();
     }
+
 
     public Order createOrder(String tableNumber, String customerName, String customerPhone, List<OrderItem> items) {
 
@@ -173,6 +176,24 @@ public class OrderManager {
     }
 
     public void updateQuantity(String orderId, String itemId, int newQuantity) {
+        if(newQuantity < 0) {
+            throw new IllegalArgumentException("Quantity cannot be negative. Enter 0 to remove the item.");
+        }
+        Order order = requireOrder(orderId);
+        requirePending(order);
+
+        OrderItem item = findItem(order, itemId);
+        if (item == null) {
+            throw new IllegalArgumentException("Menu item" + itemId + " not found in order " + orderId);
+        }
+
+        if(newQuantity ==0) {
+           order.getItemsList().remove(item);
+        }else{
+            
+            item.setQuantity(newQuantity);
+        }
+        persist();
     }
 
     public void changeStatus(String orderId, OrderStatus newStatus) {
@@ -218,6 +239,7 @@ public class OrderManager {
     }
 
     public List<Order> getOpenOrders() {
+
         List<Order> openOrders = new ArrayList<>();
 
         for (Order order : orders) {
@@ -239,6 +261,9 @@ public class OrderManager {
     }
 
     public Order findById(String orderId) {
+        if (orderId == null) {
+            return null;
+        }
         for (Order order : orders) {
             if (order.getOrderId().equalsIgnoreCase(orderId)) {
                 return order;
@@ -248,15 +273,24 @@ public class OrderManager {
     }
 
     public List<Order> searchByTable(String keyword) {
-        return Collections.emptyList();
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
+        String lowerKey = keyword.trim().toLowerCase();
+        List<Order> result = new ArrayList<>();
+        for (Order order : orders) {
+            if (order != null && order.getTableNumber() != null
+                    && order.getTableNumber().toLowerCase().contains(lowerKey)) {
+                result.add(order);
+            }
+        }
+        return result;
     }
 
     public double calculateTotal(Order order) {
         double total = 0;
-
         for (OrderItem item : order.getItemsList()) {
             total += item.getMenuItem().getPrice() * item.getQuantity();
-
         }
         return total;
     }
@@ -273,97 +307,93 @@ public class OrderManager {
         return Collections.emptyList();
     }
 
+    private OrderItem findItem(Order order, String itemId) {
+        for (OrderItem item : order.getItemsList()) {
+            if (item.getMenuItem().getItemId().equalsIgnoreCase(itemId)) {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    private Order requireOrder(String orderId) {
+        Order order = findById(orderId);
+        if (order == null) {
+            throw new IllegalArgumentException("Order not found: " + orderId);
+        }
+        return order;
+    }
+
+    private void requirePending(Order order) {
+        if (order.getStatus() != OrderStatus.PENDING) {
+            throw new IllegalStateException("Order " + order.getOrderId() + " is "+ order.getStatus() + ", not PENDING.");
+        }
+
+    }
+
+    private void persist() {
+        try {
+            save();
+        } catch (IOException e) {
+            throw new IllegalStateException("Cannot save orders: " + e.getMessage());
+        }
+    }
+
     public void save() throws IOException {
         List<String> lines = new ArrayList<>();
-
         for (Order order : orders) {
             lines.add(format(order));
         }
-
         FileHandler.writeFile(filePath, lines);
     }
 
     private void load() {
-        List<String> lines = FileHandler.readFile(filePath);
-
-        for (String line : lines) {
+        for (String line : FileHandler.readFile(filePath)) {
             Order order = parse(line);
-
             if (order == null) {
-                System.out.println("Skipping invalid order line: " + line);
+                System.out.println("Skip invalid order line: " + line);
                 continue;
             }
-
             orders.add(order);
             updateCounter(order.getOrderId());
         }
     }
 
     private String format(Order order) {
-        String items = "";
-
-        for (OrderItem item : order.getItemsList()) {
-            if (!items.isEmpty()) {
-                items += ",";
-
+        StringBuilder items = new StringBuilder();
+        for (OrderItem oi : order.getItemsList()) {
+            if (items.length() > 0) {
+                items.append(",");
             }
-            items += item.getMenuItem().getItemId() + ":" + item.getQuantity();
-
+            items.append(oi.getMenuItem().getItemId()).append(":").append(oi.getQuantity());
         }
-        return order.getOrderId() + "|"
-                + order.getOrderDate() + "|"
-                + order.getTableNumber() + "|"
-                + order.getCustomerName() + "|"
-                + order.getCustomerPhone() + "|"
-                + order.getStatus().name() + "|"
-                + items;
+        return order.getOrderId() + "|" + order.getOrderDate() + "|" + order.getTableNumber()
+                + "|" + order.getCustomerName() + "|" + order.getCustomerPhone()
+                + "|" + order.getStatus().name() + "|" + items.toString();
     }
 
     private Order parse(String line) {
         try {
-            String[] parts = line.split(SEP);
-
-            if (parts.length != FIELD_COUNT) {
+            String[] p = line.split(SEP, -1);
+            if (p.length != FIELD_COUNT) {
                 return null;
             }
-
-            Order order = new Order(
-                    parts[0].trim(),
-                    parts[1].trim(),
-                    parts[2].trim(),
-                    parts[3].trim(),
-                    parts[4].trim());
-
-            order.setStatus(OrderStatus.valueOf(parts[5].trim()));
-
-            String[] itemParts = parts[6].split(",");
-
-            for (String itemPart : itemParts) {
-                String[] itemInfo = itemPart.split(":");
-
-                if (itemInfo.length != 2) {
-                    return null;
+            Order order = new Order(p[0], p[1], p[2], p[3], p[4]);
+            order.setStatus(OrderStatus.valueOf(p[5]));
+            if (!p[6].isEmpty()) {
+                for (String entry : p[6].split(",")) {
+                    String[] kv = entry.split(":");
+                    MenuItem menuItem = menuManager.findById(kv[0]);
+                    if (menuItem == null) {
+                        System.out.println("Skipping item " + kv[0] + " in order " + p[0]
+                                + ": not in menu.");
+                        continue;
+                    }
+                    order.getItemsList().add(new OrderItem(menuItem, Integer.parseInt(kv[1])));
                 }
-
-                MenuItem menuItem = menuManager.findById(itemInfo[0].trim());
-
-                if (menuItem == null) {
-                    return null;
-                }
-
-                int quantity = Integer.parseInt(itemInfo[1].trim());
-
-                if (quantity <= 0) {
-                    return null;
-                }
-
-                order.getItemsList().add(
-                        new OrderItem(menuItem, quantity));
             }
-
             return order;
-
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             return null;
         }
     }
@@ -375,7 +405,6 @@ public class OrderManager {
                 counter = number + 1;
             }
         } catch (RuntimeException e) {
-            // Mã đơn không đúng dạng O<số>: bỏ qua, không ảnh hưởng counter.
         }
     }
 }
