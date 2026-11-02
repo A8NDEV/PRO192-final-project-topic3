@@ -572,7 +572,6 @@ public class OrderDispatcher {
     }
 
     private void sortedOrders() {
-
         List<Order> orderList = orderManager.getAllOrders();
         if (orderList.isEmpty()) {
             console.showMessage("No orders available..");
