@@ -219,5 +219,8 @@ public class MenuDispatcher {
                 }
             }
         }
+        if (count == 0) {
+            console.showMessage("All items have orders.");
+        }
     }
 }
