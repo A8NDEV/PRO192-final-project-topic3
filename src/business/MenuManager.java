@@ -18,15 +18,12 @@ import utils.Validator;
  */
 public class MenuManager {
 
-    private final String filePath;
-    private final List<MenuItem> menuList;
+    private static final List<MenuItem> menuList = load();
 
-    public MenuManager(String filePath) {
-        this.filePath = filePath;
-        this.menuList = load();
+    private MenuManager() {
     }
 
-    public MenuItem findById(String id) {
+    public static MenuItem findById(String id) {
         if (id == null) {
             return null;
         }
@@ -39,7 +36,7 @@ public class MenuManager {
         return null;
     }
 
-    public List<MenuItem> findByName(String name) {
+    public static List<MenuItem> findByName(String name) {
         if (name == null || name.trim().isEmpty()) {
             return Collections.emptyList();
         }
@@ -53,7 +50,7 @@ public class MenuManager {
         return result;
     }
 
-    public void addItem(MenuItem item) {
+    public static void addItem(MenuItem item) {
         if (findById(item.getItemId()) != null) {
             throw new IllegalArgumentException("Item ID '" + item.getItemId() + "' already exists!");
         }
@@ -62,7 +59,7 @@ public class MenuManager {
         menuList.add(item);
     }
 
-    public void updateItem(MenuItem updatedItem) {
+    public static void updateItem(MenuItem updatedItem) {
         if (updatedItem == null || updatedItem.getItemId() == null) {
             throw new IllegalArgumentException("Item cannot be null.");
         }
@@ -84,14 +81,12 @@ public class MenuManager {
         currentItem.setStatus(updatedItem.isStatus());
     }
 
-    public List<MenuItem> getMenuList() {
+    public static List<MenuItem> getMenuList() {
         return new ArrayList<>(menuList);
     }
 
-    public List<MenuItem> getAvailableItems() {
-
+    public static List<MenuItem> getAvailableItems() {
         List<MenuItem> availableItems = new ArrayList<>();
-
         for (MenuItem item : menuList) {
             if (item.isStatus()) {
                 availableItems.add(item);
@@ -100,18 +95,18 @@ public class MenuManager {
         return availableItems;
     }
 
-    public void save() throws IOException {
+    public static void save() throws IOException {
         List<String> lines = new ArrayList<>();
         for (MenuItem item : menuList) {
             lines.add(item.getItemId() + "|" + item.getItemName() + "|"
                     + item.getCategory() + "|" + item.getPrice() + "|" + item.isStatus());
         }
-        FileHandler.writeFile(filePath, lines);
+        FileHandler.writeFile("data/menu.txt", lines);
     }
 
-    private List<MenuItem> load() {
+    private static List<MenuItem> load() {
         List<MenuItem> items = new ArrayList<>();
-        List<String> lines = FileHandler.readFile(filePath);
+        List<String> lines = FileHandler.readFile("data/menu.txt");
         for (String line : lines) {
             MenuItem item = parse(line);
             if (item == null) {
@@ -123,7 +118,7 @@ public class MenuManager {
         return items;
     }
 
-    private MenuItem parse(String line) {
+    private static MenuItem parse(String line) {
         try {
             String[] parts = line.split("\\|");
             if (parts.length != 5) {

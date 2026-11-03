@@ -3,32 +3,49 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 
-import business.MenuManager;
-import business.OrderManager;
-import dispatcher.AppDispatcher;
 import dispatcher.MenuDispatcher;
 import dispatcher.OrderDispatcher;
 import java.util.Scanner;
+import utils.InputHandler;
+import utils.OutputHandler;
 
 /**
  *
  * @author ASUS
  */
 public class Main {
+
+    private static final String[] MAIN_OPTIONS = {"Menu management", "Order management"};
+
     public static void main(String[] args) {
-        String menuFilePath = "data/menu.txt";
-        String orderFilePath = "data/orders.txt";
+        Scanner scanner = InputHandler.SCANNER;
+        OutputHandler console = new OutputHandler();
+        int choice = -1;
 
-        // MenuManager phải tạo trước vì OrderManager cần tra món khi đọc file order.
-        MenuManager menuManager = new MenuManager(menuFilePath);
-        OrderManager orderManager = new OrderManager(orderFilePath, menuManager);
+        do {
+            console.showMenu("Table-side Ordering", MAIN_OPTIONS, "Exit");
 
-        Scanner scanner = new Scanner(System.in);
+            try {
+                choice = Integer.parseInt(scanner.nextLine().trim());
+            } catch (NumberFormatException e) {
+                console.showMessage("Value must be an integer.");
+                continue;
+            }
 
-        MenuDispatcher menuDispatcher = new MenuDispatcher(menuManager, scanner, orderManager);
-        OrderDispatcher orderDispatcher = new OrderDispatcher(orderManager, menuManager, scanner);
-
-        AppDispatcher appDispatcher = new AppDispatcher(scanner, menuDispatcher, orderDispatcher);
-        appDispatcher.run();
+            switch (choice) {
+                case 1:
+                    new MenuDispatcher().run();
+                    break;
+                case 2:
+                    new OrderDispatcher().run();
+                    break;
+                case 0:
+                    console.showMessage("Goodbye!");
+                    break;
+                default:
+                    console.showMessage("Invalid choice.");
+                    break;
+            }
+        } while (choice != 0);
     }
 }
