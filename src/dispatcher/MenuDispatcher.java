@@ -10,8 +10,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Scanner;
 import models.MenuItem;
-import models.Order;
-import models.OrderItem;
 import utils.InputHandler;
 import utils.OutputHandler;
 import utils.Validator;
@@ -31,15 +29,10 @@ public class MenuDispatcher {
     };
     private static final String[] SEARCH_OPTIONS = {"Search by ID", "Search by Name"};
 
-    private final MenuManager menuManager;
     private final OutputHandler console = new OutputHandler();
-    private final Scanner scanner;
-    private final OrderManager orderManager;
+    private final Scanner scanner = InputHandler.SCANNER;
 
-    public MenuDispatcher(MenuManager menuManager, Scanner scanner, OrderManager orderManager) {
-        this.menuManager = menuManager;
-        this.scanner = scanner;
-        this.orderManager = orderManager;
+    public MenuDispatcher() {
     }
 
     public void run() {
@@ -83,7 +76,7 @@ public class MenuDispatcher {
         String id;
         while (true) {
             id = InputHandler.readNonBlank(scanner, "Enter item ID: ").toUpperCase();
-            if (menuManager.findById(id) != null) {
+            if (MenuManager.findById(id) != null) {
                 console.showError("Item ID '" + id + "' already exists! Please enter a different ID.");
                 continue;
             }
@@ -98,8 +91,8 @@ public class MenuDispatcher {
         MenuItem newItem = new MenuItem(id, name, category, price, status);
 
         try {
-            menuManager.addItem(newItem);
-            menuManager.save();
+            MenuManager.addItem(newItem);
+            MenuManager.save();
             console.showMessage("Item added successfully!");
         } catch (IllegalArgumentException e) {
             console.showError(e.getMessage());
@@ -110,7 +103,7 @@ public class MenuDispatcher {
 
     private void updateItem() {
         String id = InputHandler.readNonBlank(scanner, "Enter item ID to update: ").toUpperCase();
-        MenuItem currentItem = menuManager.findById(id);
+        MenuItem currentItem = MenuManager.findById(id);
 
         if (currentItem == null) {
             console.showError("Item ID '" + id + "' not found!");
@@ -119,19 +112,11 @@ public class MenuDispatcher {
 
         console.showMessage("\n--- Current Item Details ---");
         console.showItem(currentItem);
-        console.showMessage("Press [Enter] to keep current value.\n");
 
-        String newName = Validator.normalizeName(InputHandler.readOptionalNonBlank(scanner,
-                "Enter new Name [" + currentItem.getItemName() + "]: ", currentItem.getItemName()));
-
-        String newCategory = Validator.normalizeName(InputHandler.readOptionalNonBlank(scanner,
-                "Enter new Category [" + currentItem.getCategory() + "]: ", currentItem.getCategory()));
-
-        double newPrice = InputHandler.readOptionalPrice(scanner,
-                "Enter new Price [" + String.format("%,.0f", currentItem.getPrice()) + "]: ", currentItem.getPrice());
-
-        boolean newStatus = InputHandler.readOptionalBoolean(scanner,
-                "Show/Hide? (true/false) [" + currentItem.isStatus() + "]: ", currentItem.isStatus());
+        String newName = Validator.normalizeName(InputHandler.readNonBlank(scanner, "Enter new item Name: "));
+        String newCategory = Validator.normalizeName(InputHandler.readNonBlank(scanner, "Enter new Category: "));
+        double newPrice = InputHandler.readValidPrice(scanner, "Enter new Price: ");
+        boolean newStatus = InputHandler.readBoolean(scanner, "Show/Hide? (true/false): ");
 
         if (!InputHandler.readConfirmed(scanner, "Confirm update this item? (y/n): ")) {
             console.showMessage("Update cancelled. No changes made.");
@@ -141,8 +126,8 @@ public class MenuDispatcher {
         MenuItem updatedItem = new MenuItem(currentItem.getItemId(), newName, newCategory, newPrice, newStatus);
 
         try {
-            menuManager.updateItem(updatedItem);
-            menuManager.save();
+            MenuManager.updateItem(updatedItem);
+            MenuManager.save();
             console.showMessage("Item updated successfully!");
         } catch (IllegalArgumentException e) {
             console.showError(e.getMessage());
@@ -163,7 +148,7 @@ public class MenuDispatcher {
         switch (choice) {
             case 1:
                 String id = InputHandler.readNonBlank(scanner, "Enter Item ID to search: ").toUpperCase();
-                MenuItem item = menuManager.findById(id);
+                MenuItem item = MenuManager.findById(id);
                 if (item != null) {
                     console.showItem(item);
                 } else {
@@ -172,7 +157,7 @@ public class MenuDispatcher {
                 break;
             case 2:
                 String name = InputHandler.readNonBlank(scanner, "Enter Item Name to search: ");
-                List<MenuItem> list = menuManager.findByName(name);
+                List<MenuItem> list = MenuManager.findByName(name);
                 if (list.isEmpty()) {
                     console.showMessage("Item not found.");
                 } else {
@@ -189,10 +174,11 @@ public class MenuDispatcher {
     }
 
     private void displayAvailable() {
-        if (menuManager.getMenuList().isEmpty()) {
-            console.showMessage("No items available");
+        if (MenuManager.getMenuList().isEmpty()) {
+            console.showMessage("No items available.");
+            return;
         }
-        List<MenuItem> available = menuManager.getAvailableItems();
+        List<MenuItem> available = MenuManager.getAvailableItems();
         if (available.isEmpty()) {
             console.showMessage("No available items.");
             return;
@@ -202,35 +188,12 @@ public class MenuDispatcher {
     }
 
     private void displayItemsNoOrder() {
-        if (orderManager == null) {
-            console.showError("Order service is not configured.");
+        List<MenuItem> unordered = OrderManager.getUnorderedItems();
+        if (unordered.isEmpty()) {
+            console.showMessage("All items have orders.");
             return;
         }
-
-        int count = 0;
-        List<MenuItem> menuList = menuManager.getMenuList();
-        List<Order> orderList = orderManager.getAllOrders();
-
-        for (MenuItem item : menuList) {
-            boolean found = false;
-            for (Order order : orderList) {
-                for (OrderItem orderItem : order.getItemsList()) {
-                    if (item.getItemId().equalsIgnoreCase(orderItem.getMenuItem().getItemId())) {
-                        found = true;
-                        break;
-                    }
-                    if (found == true) {
-                        continue;
-                    } else {
-                        console.showMessage("\n===== Items with no orders =====");
-                        console.showItem(item);
-                        count++;
-                    }
-                }
-            }
-        }
-        if (count == 0) {
-            console.showMessage("All items have orders.");
-        }
+        console.showMessage("\n===== Items with no orders =====");
+        console.showItemTable(unordered);
     }
 }

@@ -1,9 +1,18 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
 package models;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class Order {
+/**
+ *
+ * @author ASUS
+ */
+public class Order implements Comparable<Order> {
+
     private String orderId;
     private String orderDate;
     private String tableNumber;
@@ -30,4 +39,22 @@ public class Order {
     public List<OrderItem> getItemsList() { return itemsList; }
     public OrderStatus getStatus() { return status; }
     public void setStatus(OrderStatus status) { this.status = status; }
+
+    public double getTotal() {
+        double total = 0;
+        for (OrderItem item : itemsList) {
+            if (item != null && item.getMenuItem() != null) {
+                total += item.getMenuItem().getPrice() * item.getQuantity();
+            }
+        }
+        return total;
+    }
+
+    @Override
+    public int compareTo(Order other) {
+        if (other == null) {
+            return -1;
+        }
+        return Double.compare(other.getTotal(), this.getTotal());
+    }
 }

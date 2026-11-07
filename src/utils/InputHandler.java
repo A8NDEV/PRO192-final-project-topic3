@@ -10,11 +10,9 @@ import java.util.Scanner;
  *
  * @author ASUS
  */
-/**
- * Doc va validate input tu console, dung chung cho moi Dispatcher (Menu,
- * Order...) de khong phai lap lai code hoi - nhap - kiem tra.
- */
 public class InputHandler {
+
+    public static final Scanner SCANNER = new Scanner(System.in);
 
     public static String readNonBlank(Scanner scanner, String prompt) {
         String value;
@@ -64,47 +62,6 @@ public class InputHandler {
             }
         } while (!Validator.isConfirmed(value));
         return value.equalsIgnoreCase("y");
-    }
-
-    public static String readOptionalNonBlank(Scanner scanner, String prompt, String dValue) {
-        while (true) {
-            System.out.print(prompt);
-            String value = scanner.nextLine().trim();
-
-            if (value.isEmpty()) {
-                return dValue;
-            }
-
-            if (!Validator.containsDelimiter(value)) {
-                return value;
-            }
-
-            System.out.println("Cannot contain '|' character.");
-        }
-    }
-
-    public static double readOptionalPrice(Scanner scanner, String prompt, double dValue) {
-        while (true) {
-            System.out.print(prompt);
-            String value = scanner.nextLine().trim();
-            if (value.isEmpty()) return dValue;
-            if (Validator.isValidPrice(value)) {
-                return Double.parseDouble(value);
-            }
-            System.out.println("Invalid price. Must be a positive number.");
-        }
-    }
-
-    public static boolean readOptionalBoolean(Scanner scanner, String prompt, boolean dStatus) {
-        while (true) {
-            System.out.print(prompt);
-            String value = scanner.nextLine().trim();
-            if (value.isEmpty()) return dStatus;
-            if (Validator.isValidBoolean(value)) {
-                return Boolean.parseBoolean(value);
-            }
-            System.out.println("Invalid value. Enter true or false.");
-        }
     }
 
     public static String readCustomerName(Scanner scanner, String prompt) {

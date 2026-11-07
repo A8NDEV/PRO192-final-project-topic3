@@ -56,7 +56,6 @@ public class Validator {
         return choice.equalsIgnoreCase("y") || choice.equalsIgnoreCase("n");
     }
 
-    // Phan loai validate khi nhap name
     public static String getCustomerNameError(String value) {
         if (value == null || value.trim().isEmpty()) {
             return "Name cannot be blank.";
@@ -68,11 +67,11 @@ public class Validator {
             return "Name cannot exceed 50 characters.";
         }
 
-        if (!trimmed.matches("^[\\p{L}\\p{N} ]+$")) {
+        if (!trimmed.matches("^[a-zA-Z0-9 ]+$")) {
             return "Name can only contain letters, numbers, and spaces.";
         }
 
-        if (!trimmed.matches(".*\\p{L}.*")) {
+        if (!trimmed.matches(".*[a-zA-Z].*")) {
             return "Name must contain at least one letter.";
         }
 
